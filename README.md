@@ -23,20 +23,22 @@ In today's fast-paced digital landscape, a developer's true capabilities are bes
 
 ## 🚀 Key Features
 
-*   **Vibrant & Modern UI/UX**: Crafted with a premium dark-mode aesthetic, custom gradients, glassmorphism, spotlight card effects, and rotating/shiny text animations.
-*   **Adaptive Responsive Layout**: Implements a sticky side navigation for desktops and a fluid, responsive dock menu for mobile and tablet views.
+*   **Black & Green Dashboard UI**: A fixed sidebar (collapses into a floating dock on mobile), a sticky top bar with breadcrumbs, and a card-based home dashboard with live content counts pulled from Supabase.
+*   **Bilingual (English / Bahasa Indonesia)**: One-click language toggle in the sidebar. The choice is remembered, and all interface text is translated from a single dictionary (`src/constants/translations.js`).
+*   **Polished Motion System**: Shared animation tokens, a fade-in page template, a slim top progress bar, sliding active-state indicators, staggered section entrances, and full `prefers-reduced-motion` support.
 *   **Dynamic Project Gallery (Supabase-integrated)**:
-    *   **Live Search & Filtering**: Instant client-side search across titles and descriptions, with smooth tab-based filters.
-    *   **Immersive Modal View**: Framer Motion animated modal detailing tech stacks, features, screenshots, and live demo links.
+    *   **Live Search & Filtering**: Instant client-side search with Developer / Creative / Hybrid filters.
+    *   **Project Detail Pages**: Tech stack, key features, screenshot gallery with lightbox, and live demo / source links.
 *   **Admin CRUD Control Center**:
-    *   **Authentication & Authorization**: Integrated Google OAuth via Supabase checking for specific admin privileges.
-    *   **On-Site Editing**: Secure interactive modal forms to add, update, or remove projects directly from the web interface.
+    *   **Authentication & Authorization**: Google OAuth via Supabase, with admin privileges for the site owner.
+    *   **Context-Aware Forms**: Create/edit forms adapt to what is being edited, e.g. a project's focus (Developer / Creative / Hybrid) changes the categories, statuses and field labels, while experience, education, achievement and gear each have their own fields, hints and validation.
+    *   **Image Uploads**: Upload covers, galleries, logos and certificates straight to Supabase Storage.
 *   **Real-time Guestbook Chat**:
-    *   **Social Sign-In**: Quick Google OAuth sign-in for users to leave a message.
+    *   **Social Sign-In**: Quick Google OAuth sign-in to leave a message.
     *   **Real-time Synchronization**: Live updates for new posts, replies, and reactions using Supabase Postgres replication.
-*   **Interactive Skillset Grid**: Interactive filtering of skills and tools with layout-preserving spring animations.
-*   **GitHub Activity Integration**: Displays live open-source contributions using `react-github-calendar`.
-*   **Comprehensive Sections**: Curated pages for *About Me* (education/career timeline), *Achievements* (credential listings), *Gears* (workspace setup details), and *Contact*.
+*   **Interactive Skillset Grid**: Filterable skills and tools with layout-preserving spring animations.
+*   **GitHub Activity Integration**: Shows the most recent six months of contributions using `react-github-calendar`.
+*   **Comprehensive Sections**: *About* (professional summary, skills, experience & education timeline), *Projects*, *Achievements*, *Gears*, *Guestbook*, and *Contact*.
 
 ---
 
@@ -45,6 +47,7 @@ In today's fast-paced digital landscape, a developer's true capabilities are bes
 *   **Framework**: Next.js 16 (App Router), React 19
 *   **Styling**: Tailwind CSS v4, Radix UI, Shadcn UI
 *   **Animations**: Framer Motion (v12), GSAP
+*   **i18n**: Lightweight in-house provider (English / Bahasa Indonesia)
 *   **Backend & Database**: Supabase (PostgreSQL, Realtime Channels, Auth)
 *   **Icons & Assets**: Lucide React, React Icons
 
@@ -73,18 +76,26 @@ npm install
 ```
 
 ### 3. Setup Environment Variables
-Duplicate the `.env.example` file and rename it to `.env`:
-```bash
-cp .env.example .env
-```
-Open `.env` and fill in your Supabase project API credentials:
+Create a `.env` file in the project root and fill in your Supabase project API credentials:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
 ### 4. Supabase Schema Migration
-In your **Supabase SQL Editor**, execute the necessary SQL scripts to provision the tables (`projects`, `guestbook`), Row Level Security (RLS) policies, and database replication for real-time functionality. 
+In your **Supabase SQL Editor**, create the following tables, enable Row Level Security (RLS) with suitable policies, and turn on replication for `guestbook` so real-time updates work:
+
+| Table | Used by |
+| --- | --- |
+| `projects` | Projects list, detail and admin forms |
+| `experiences`, `educations` | About page timeline |
+| `achievements` | Achievement page |
+| `gears` | Gears page |
+| `guestbook` | Real-time guestbook |
+
+Also create a public **Storage** bucket named `portfolio` (or `uploads` as fallback) for image uploads.
+
+> **Security note:** the app talks to Supabase directly from the browser, and the admin check in `AuthProvider` is client-side only. Write access must be enforced with RLS policies (e.g. restrict inserts/updates/deletes to the owner's account).
 
 ### 5. Setup Google OAuth in Supabase
 1. Go to **Supabase Dashboard** -> **Authentication** -> **Providers**.
@@ -122,19 +133,20 @@ npm run start
 ├── public/                 # Static assets
 └── src/
     ├── app/                # Next.js App Router (pages and layouts)
-    │   ├── about/          # Career timeline & bio
+    │   ├── template.js     # Page fade-in on every navigation
+    │   ├── about/          # Professional summary, skills, experience & education
     │   ├── achievement/    # Certificates list
     │   ├── contact/        # Contact form page
     │   ├── gears/          # Workspace tech specs & equipment
     │   ├── guestbook/      # Real-time chat & guest posts
-    │   └── projects/       # Database showcase with admin CRUD modal
+    │   └── projects/       # Showcase, detail pages and admin create/edit
     ├── components/         # React Components
-    │   ├── custom/         # UI layouts (SideNav, GitHub Calendar, Loaders, Forms)
+    │   ├── custom/         # Sidebar, Topbar, Footer, forms, GitHub calendar, language toggle
     │   └── ui/             # Radix & Shadcn based UI primitives
-    ├── constants/          # Application-wide static data & animations
-    ├── hooks/              # Custom React hooks
+    ├── constants/          # animation tokens, form field configs, skills, translations
+    ├── hooks/              # useAuth, useLanguage
     ├── lib/                # Shared utilities (supabase connection, class merges)
-    └── providers/          # Global context providers (AuthProvider)
+    └── providers/          # AuthProvider, LanguageProvider, MotionProvider
 ```
 
 ---
