@@ -3,20 +3,22 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import SideNav from "@/components/custom/SideNav";
 import ProjectForm from "@/components/custom/ProjectForm";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
+import Badge from "@/components/custom/Badge";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function EditProject() {
+  const { t } = useLanguage();
   const params = useParams();
   const router = useRouter();
   const id = params.id;
-  
+
   const { user, isAdmin, loading: authLoading } = useAuth();
-  
+
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,7 +43,6 @@ export default function EditProject() {
         if (error) throw error;
         setProject(data);
       } catch (err) {
-        console.error("Error fetching project:", err);
         setError(err.message);
       } finally {
         setIsLoading(false);
@@ -83,76 +84,70 @@ export default function EditProject() {
 
   if (showLoader) {
     return (
-      <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 px-4 lg:px-6">
-        <SideNav />
-        <div className="col-span-1 lg:col-span-9 w-full flex justify-center py-24">
-          <div className="animate-pulse flex flex-col items-center gap-3">
-            <div className="h-6 w-32 bg-neutral-800 rounded-md" />
-            <div className="h-4 w-48 bg-neutral-800/60 rounded-md" />
-          </div>
+      <div className="py-12 flex justify-center">
+        <div className=" flex flex-col items-center gap-3">
+          <div className="h-6 w-32 bg-neutral-800 rounded-md" />
+          <div className="h-4 w-48 bg-neutral-800/60 rounded-md" />
         </div>
       </div>
     );
   }
 
   if (!isAdmin) {
-    return null; // Redirecting...
+    return null;
   }
 
   if (error || !project) {
     return (
-      <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 px-4 lg:px-6">
-        <SideNav />
-        <div className="col-span-1 lg:col-span-9 w-full space-y-6 pb-16">
-          <Link
-            href="/projects"
-            className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors duration-200 text-sm font-medium"
-          >
-            <ArrowLeft className="size-4" />
-            <span>Back to Projects</span>
-          </Link>
-          <div className="text-center py-20 text-red-500 bg-red-500/10 rounded-xl border border-red-500/20">
-            {error ? `Error: ${error}` : "Project not found"}
-          </div>
+      <div className="space-y-6 pt-4 pb-16">
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors duration-200 text-xs font-medium"
+        >
+          <ArrowLeft className="size-4" />
+          <span>{t("Back to Projects")}</span>
+        </Link>
+        <div className="text-center py-12 text-red-400 bg-red-950/20 border border-red-900/30 rounded-2xl">
+          {error ? `${t("Error:")} ${error}` : t("Project not found")}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 px-4 lg:px-6">
-      <SideNav />
+    <motion.div
+      animate={{ y: 0, opacity: 1 }}
+      initial={{ y: 20, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      className="space-y-6 pt-4 pb-16"
+    >
+      <div className="flex flex-col gap-3 border-b border-neutral-800 pb-6">
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors duration-200 text-xs font-medium w-fit"
+        >
+          <ArrowLeft className="size-4" />
+          <span>{t("Back to Projects")}</span>
+        </Link>
 
-      <motion.div
-        animate={{ y: 0, opacity: 1 }}
-        initial={{ y: 20, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className="col-span-1 lg:col-span-9 w-full space-y-6 pb-16"
-      >
-        <div className="flex flex-col gap-4">
-          <Link
-            href="/projects"
-            className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors duration-200 text-sm font-medium w-fit"
-          >
-            <ArrowLeft className="size-4" />
-            <span>Back to Projects</span>
-          </Link>
-
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tighter">Edit Project</h1>
-            <p className="text-neutral-400 text-sm">Update project details for &quot;{project.title}&quot;</p>
-          </div>
+        <div className="flex items-center gap-2">
+          <Badge type="dev" label={t("Edit Project")} size="sm" />
         </div>
 
-        <hr className="border-neutral-800" />
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Edit Project: {project.title}
+          </h1>
+          <p className="text-xs sm:text-sm text-neutral-400">{t("Update project details, features, gallery screenshots, and status.")}</p>
+        </div>
+      </div>
 
-        <ProjectForm
-          initialData={project}
-          onSubmit={handleSave}
-          onCancel={() => router.push("/projects")}
-          buttonText="Save Changes"
-        />
-      </motion.div>
-    </div>
+      <ProjectForm
+        initialData={project}
+        onSubmit={handleSave}
+        onCancel={() => router.push("/projects")}
+        buttonText={t("Save Changes")}
+      />
+    </motion.div>
   );
 }

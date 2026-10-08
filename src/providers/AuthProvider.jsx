@@ -3,10 +3,17 @@
 import { createContext, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
+  const { t } = useLanguage();
+  // Auth listener is subscribed once; read the latest translator through a ref.
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null); // { message, type }
@@ -43,13 +50,13 @@ export const AuthProvider = ({ children }) => {
       if (event === "SIGNED_IN") {
         const isLoggingIn = localStorage.getItem("supabase_login_intent") === "true";
         if (isLoggingIn && currentUser) {
-          showToast(`Welcome back, ${currentUser.user_metadata?.full_name || currentUser.email}!`, "success");
+          showToast(tRef.current("Welcome back, {name}!", { name: currentUser.user_metadata?.full_name || currentUser.email }), "success");
           localStorage.removeItem("supabase_login_intent");
         }
       } else if (event === "SIGNED_OUT") {
         // Only trigger toast if there was a previous user logged in on this page session
         if (prevUser.current) {
-          showToast("You have successfully logged out.", "info");
+          showToast(tRef.current("You have successfully logged out."), "info");
         }
       }
 
@@ -105,15 +112,15 @@ export const AuthProvider = ({ children }) => {
                 </svg>
               </div>
             ) : (
-              <div className="size-6 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                <svg className="size-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <div className="size-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <svg className="size-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             )}
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
-                {toast.type === "success" ? "Success" : "Notification"}
+                {toast.type === "success" ? t("Success") : t("Notification")}
               </span>
               <p className="text-sm font-medium text-neutral-200 mt-0.5">{toast.message}</p>
             </div>

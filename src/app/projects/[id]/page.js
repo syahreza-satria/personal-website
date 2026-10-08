@@ -3,84 +3,79 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import SideNav from "../../../components/custom/SideNav";
-import { Badge } from "@/components/ui/Badge";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Calendar, ExternalLink, ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  Calendar,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  CheckCircle2,
+  Edit,
+  User,
+  Tag,
+  Clock,
+  Layers,
+  Sparkles,
+} from "lucide-react";
 import { SiGithub } from "react-icons/si";
-import { motion, AnimatePresence } from "motion/react";
-import SpotlightCard from "@/components/SpotlightCard";
+import { motion, AnimatePresence } from "framer-motion";
+import Badge from "@/components/custom/Badge";
+import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
+import { modalBackdrop } from "@/constants/animation";
+
 const getStatusConfig = (status) => {
   const s = String(status || "").toLowerCase();
-  
+
   if (s === "live" || s === "true") {
     return {
       text: "Live",
-      dotClass: "bg-emerald-500 animate-pulse",
-      badgeClass: "border-emerald-500/25 text-emerald-400 bg-emerald-500/10"
+      dotClass: "bg-emerald-500 ",
+      badgeClass: "border-emerald-500/25 text-emerald-400 bg-emerald-500/10",
     };
   }
-  
+
   if (s === "in progress" || s === "false" || s === "") {
     return {
       text: "In Progress",
-      dotClass: "bg-sky-500 animate-pulse",
-      badgeClass: "border-sky-500/25 text-sky-400 bg-sky-500/10"
+      dotClass: "bg-green-500 ",
+      badgeClass: "border-green-500/25 text-green-400 bg-green-500/10",
     };
   }
-  
+
   if (s === "completed") {
     return {
       text: "Completed",
-      dotClass: "bg-indigo-400",
-      badgeClass: "border-indigo-500/25 text-indigo-400 bg-indigo-500/10"
+      dotClass: "bg-lime-400",
+      badgeClass: "border-lime-500/25 text-lime-400 bg-lime-500/10",
     };
   }
-  
+
   if (s === "design phase") {
     return {
       text: "Design Phase",
-      dotClass: "bg-rose-400",
-      badgeClass: "border-rose-500/25 text-rose-400 bg-rose-500/10"
+      dotClass: "bg-lime-400 ",
+      badgeClass: "border-lime-500/25 text-lime-300 bg-lime-500/10",
     };
   }
-  
-  if (s === "concept") {
-    return {
-      text: "Concept",
-      dotClass: "bg-amber-400",
-      badgeClass: "border-amber-500/25 text-amber-400 bg-amber-500/10"
-    };
-  }
-  
-  if (s === "maintenance") {
-    return {
-      text: "Maintenance",
-      dotClass: "bg-yellow-500 animate-pulse",
-      badgeClass: "border-yellow-500/25 text-yellow-400 bg-yellow-500/10"
-    };
-  }
-  
-  if (s === "archived") {
-    return {
-      text: "Archived",
-      dotClass: "bg-neutral-500",
-      badgeClass: "border-neutral-700 text-neutral-400 bg-neutral-900/60"
-    };
-  }
-  
+
   return {
-    text: status,
+    text: status || "Showcase",
     dotClass: "bg-neutral-500",
-    badgeClass: "border-neutral-700 text-neutral-400 bg-neutral-900/60"
+    badgeClass: "border-neutral-700 text-neutral-400 bg-neutral-900/60",
   };
 };
 
-export default function ProjectDetail() {
+export default function ProjectDetailPage() {
+  const { t, lang } = useLanguage();
   const params = useParams();
   const router = useRouter();
   const id = params.id;
+  const { user, isAdmin } = useAuth();
 
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,7 +92,9 @@ export default function ProjectDetail() {
   const prevImage = (e) => {
     e.stopPropagation();
     if (project?.gallery?.length) {
-      setActiveImageIndex((prev) => (prev - 1 + project.gallery.length) % project.gallery.length);
+      setActiveImageIndex(
+        (prev) => (prev - 1 + project.gallery.length) % project.gallery.length
+      );
     }
   };
 
@@ -117,11 +114,10 @@ export default function ProjectDetail() {
         if (data) {
           setProject({
             ...data,
-            demoLink: data.demo_link,
+            demo_link: data.demo_link || data.demoLink,
           });
         }
       } catch (err) {
-        console.error("Error fetching project details:", err);
         setError(err.message);
       } finally {
         setIsLoading(false);
@@ -131,345 +127,277 @@ export default function ProjectDetail() {
     fetchProjectDetail();
   }, [id]);
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-6 animate-pulse">
-          {/* Back button skeleton */}
-          <div className="h-9 w-32 bg-neutral-800/60 rounded-xl" />
-          
-          {/* Image skeleton */}
-          <div className="w-full aspect-video md:h-[400px] bg-neutral-800/60 rounded-[2rem]" />
-
-          {/* Info skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-            <div className="md:col-span-8 space-y-4">
-              <div className="h-8 w-2/3 bg-neutral-800/60 rounded-md" />
-              <div className="h-4 w-full bg-neutral-800/40 rounded-md" />
-              <div className="h-4 w-full bg-neutral-800/40 rounded-md" />
-              <div className="h-4 w-5/6 bg-neutral-800/40 rounded-md" />
-            </div>
-            <div className="md:col-span-4 space-y-4">
-              <div className="h-6 w-1/3 bg-neutral-800/60 rounded-md" />
-              <div className="h-10 w-full bg-neutral-800/50 rounded-xl" />
-              <div className="h-10 w-full bg-neutral-800/50 rounded-xl" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (error || !project) {
-      return (
-        <div className="space-y-6">
-          <Link
-            href="/projects"
-            className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors duration-200"
-          >
-            <ArrowLeft className="size-4" />
-            <span>Back to Projects</span>
-          </Link>
-          <div className="text-center py-20 text-red-500 bg-red-500/10 rounded-xl border border-red-500/20">
-            {error ? `Error: ${error}` : "Project not found"}
-          </div>
-        </div>
-      );
-    }
-
+  if (isLoading) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="space-y-8"
-      >
-        {/* Navigation & Actions */}
-        <div className="flex justify-between items-center">
-          <Link
-            href="/projects"
-            className="inline-flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white px-4 py-2.5 rounded-xl border border-neutral-800 transition-all text-sm font-medium active:scale-95 shadow-sm"
-          >
-            <ArrowLeft className="size-4" />
-            <span>Back to Projects</span>
-          </Link>
-        </div>
-
-        {/* Project Main Spotlight Card */}
-        <SpotlightCard
-          className="relative !p-0 overflow-hidden border border-neutral-800 rounded-[2rem] bg-neutral-900/40 shadow-2xl flex flex-col"
-          spotlightColor="rgba(0, 229, 255, 0.08)"
-        >
-          {/* Main Visual Image Banner */}
-          <div className="w-full overflow-hidden bg-neutral-950 border-b border-neutral-800/50 flex justify-center items-center">
-            {project.image ? (
-              <Image
-                src={project.image}
-                alt={project.title}
-                width={1200}
-                height={600}
-                className="w-full h-auto object-contain max-h-[600px]"
-              />
-            ) : (
-              <div className="w-full h-48 flex flex-col items-center justify-center text-neutral-600 gap-3">
-                <ExternalLink className="size-16 stroke-1 text-neutral-800" />
-                <span>No project image available</span>
-              </div>
-            )}
-          </div>
-
-          {/* Details Content Container */}
-          <div className="p-6 md:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-            
-            {/* Left Side: General Info & Description */}
-            <div className="lg:col-span-8 space-y-8">
-              <div className="space-y-4">
-                {/* Badges / Category / Role */}
-                <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-md">
-                    {project.type}
-                  </span>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-300 bg-neutral-800 border border-neutral-700/80 px-3 py-1 rounded-md">
-                    {project.category}
-                  </span>
-                  {(() => {
-                    const config = getStatusConfig(project.status);
-                    return (
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${config.badgeClass}`}>
-                        <span className={`size-1.5 rounded-full ${config.dotClass}`}></span>
-                        {config.text}
-                      </span>
-                    );
-                  })()}
-                </div>
-
-                <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                  {project.title}
-                </h1>
-
-                {/* Role & Date Info */}
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-neutral-400 text-sm">
-                  {project.role && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-neutral-500 font-medium">My Role:</span>
-                      <span className="text-neutral-200 font-semibold">{project.role}</span>
-                    </div>
-                  )}
-                  {project.project_date && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="size-4 text-neutral-500" />
-                      <span className="text-neutral-500 font-medium">Completed:</span>
-                      <span className="text-neutral-200 font-semibold">
-                        {new Date(project.project_date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <hr className="border-neutral-800" />
-
-              {/* Long Description */}
-              <div className="space-y-3">
-                <h3 className="text-sm text-neutral-400 uppercase font-bold tracking-wider">About the Project</h3>
-                <p className="text-neutral-300 text-base md:text-lg leading-relaxed whitespace-pre-wrap">
-                  {project.description}
-                </p>
-              </div>
-
-              {/* Features List */}
-              {project.features && project.features.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm text-neutral-400 uppercase font-bold tracking-wider">Key Features</h3>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {project.features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-2 text-neutral-300 text-sm md:text-base">
-                        <span className="text-emerald-500 font-bold shrink-0 mt-0.5">•</span>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Tech Stack Details */}
-              {project.techstack && project.techstack.length > 0 && (
-                <div className="space-y-3.5">
-                  <h3 className="text-sm text-neutral-400 uppercase font-bold tracking-wider">Technologies Used</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {project.techstack.map((tech) => (
-                      <span
-                        key={tech}
-                        className="text-xs sm:text-sm bg-neutral-950 text-neutral-300 border border-neutral-800 px-3.5 py-1.5 rounded-xl font-mono"
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Image Gallery */}
-              {project.gallery && project.gallery.length > 0 && (
-                <div className="space-y-4 pt-4">
-                  <h3 className="text-sm text-neutral-400 uppercase font-bold tracking-wider">Project Screenshots</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {project.gallery.map((imgUrl, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-video rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-950 hover:border-neutral-700 transition-all duration-300 group cursor-pointer"
-                        onClick={() => setActiveImageIndex(index)}
-                      >
-                        <Image
-                          src={imgUrl}
-                          alt={`${project.title} Screenshot ${index + 1}`}
-                          fill
-                          loading="lazy"
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          sizes="(max-w-7xl) 33vw, 50vw"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Right Side: Links & Call To Actions */}
-            <div className="lg:col-span-4 space-y-6">
-              <div className="bg-neutral-950/50 border border-neutral-850 p-6 rounded-2xl space-y-6 sticky top-24">
-                <h3 className="text-sm text-neutral-300 font-bold uppercase tracking-wider">Project Links</h3>
-                
-                <div className="flex flex-col gap-3">
-                  {project.demoLink ? (
-                    <a
-                      href={project.demoLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-all shadow-lg shadow-emerald-600/10 cursor-pointer active:scale-98"
-                    >
-                      <span>Visit Live Demo</span>
-                      <ArrowUpRight className="size-4" />
-                    </a>
-                  ) : (
-                    <div className="w-full text-center py-3 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-500 text-sm font-medium">
-                      Demo Unavailable
-                    </div>
-                  )}
-
-                  {project.github ? (
-                    <a
-                      href={project.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-200 hover:text-white font-medium text-sm transition-all border border-neutral-800 cursor-pointer active:scale-98"
-                    >
-                      <SiGithub className="size-4.5" />
-                      <span>Explore Source Code</span>
-                    </a>
-                  ) : (
-                    <div className="w-full text-center py-3 rounded-xl bg-neutral-900 border border-neutral-850 text-neutral-600 text-sm font-medium">
-                      Repository is Private
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-neutral-900 text-center">
-                  <span className="text-xs text-neutral-500 block">
-                    Interested in similar projects? Let&apos;s connect!
-                  </span>
-                  <Link
-                    href="/contact"
-                    className="text-xs text-emerald-400 hover:text-emerald-300 font-medium inline-block mt-2 transition-colors"
-                  >
-                    Get in Touch &rarr;
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </SpotlightCard>
-      </motion.div>
+      <div className="space-y-6 pt-4  pb-12">
+        <div className="h-9 w-32 bg-neutral-800/60 rounded-xl" />
+        <div className="w-full aspect-video bg-neutral-800/60 rounded-2xl" />
+        <div className="h-8 w-2/3 bg-neutral-800/60 rounded-md" />
+        <div className="h-4 w-full bg-neutral-800/40 rounded-md" />
+      </div>
     );
-  };
+  }
+
+  if (error || !project) {
+    return (
+      <div className="space-y-6 pt-4 pb-12">
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white px-4 py-2 rounded-xl border border-neutral-800 transition-all text-xs font-medium"
+        >
+          <ArrowLeft className="size-4" />
+          <span>{t("Back to Projects")}</span>
+        </Link>
+        <div className="py-12 text-center text-red-400 bg-red-950/20 border border-red-900/30 rounded-2xl">
+          {error ? `${t("Error:")} ${error}` : t("Project not found")}
+        </div>
+      </div>
+    );
+  }
+
+  const statusConfig = getStatusConfig(project.status);
+  const techstackList = Array.isArray(project.techstack)
+    ? project.techstack
+    : typeof project.techstack === "string"
+    ? JSON.parse(project.techstack || "[]")
+    : [];
+  const featuresList = Array.isArray(project.features) ? project.features : [];
+  const galleryList = Array.isArray(project.gallery) ? project.gallery : [];
 
   return (
-    <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 px-4 lg:px-6">
-      <SideNav />
+    <div className="space-y-8 pt-4 pb-12">
+      {/* Top Bar Navigation & Admin Actions */}
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white px-3.5 py-2 rounded-xl border border-neutral-800 transition-all text-xs font-medium active:scale-95 shadow-sm"
+        >
+          <ArrowLeft className="size-4" />
+          <span>{t("Back to Projects")}</span>
+        </Link>
 
-      <div className="col-span-1 lg:col-span-9 w-full pb-16">
-        {renderContent()}
+        {isAdmin && (
+          <Link
+            href={`/projects/${project.id}/edit`}
+            className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3.5 py-2 rounded-xl transition-all shadow-md shadow-emerald-600/10 active:scale-95"
+          >
+            <Edit className="size-3.5" />
+            <span>{t("Edit Project")}</span>
+          </Link>
+        )}
       </div>
 
-      {/* Lightbox Modal */}
+      {/* Main Project Case Study Box */}
+      <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 overflow-hidden shadow-xl space-y-6">
+        {/* Banner / Hero Image */}
+        <div
+          className="relative w-full aspect-video bg-neutral-950 border-b border-neutral-800/80 overflow-hidden flex items-center justify-center cursor-pointer group"
+          onClick={() => project.image && setActiveImageIndex(0)}
+        >
+          {project.image ? (
+            <Image
+              src={project.image}
+              alt={project.title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              sizes="(max-w-4xl) 100vw"
+              priority
+            />
+          ) : (
+            <div className="p-8 text-center text-neutral-600 flex flex-col items-center gap-2">
+              <ExternalLink className="size-12 stroke-1 text-neutral-700" />
+              <span className="text-xs">{t("No hero image uploaded")}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Content Body */}
+        <div className="p-5 sm:p-8 space-y-6">
+          {/* Header & Badges */}
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                type={project.type || "dev"}
+                label={String(project.type || "dev").toUpperCase()}
+                size="sm"
+              />
+
+              {project.category && (
+                <span className="text-xs px-2.5 py-0.5 rounded-md bg-neutral-800/80 text-neutral-300 border border-neutral-700/50 font-medium">
+                  {project.category}
+                </span>
+              )}
+
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusConfig.badgeClass}`}
+              >
+                <span className={`size-1.5 rounded-full ${statusConfig.dotClass}`} />
+                {t(statusConfig.text)}
+              </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+              {project.title}
+            </h1>
+
+            {/* Metadata Bar (Role, Date, Created At) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-neutral-400">
+              {project.role && (
+                <div className="flex items-center gap-2 bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850">
+                  <User className="size-4 text-emerald-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-neutral-500 uppercase block font-mono">{t("Role")}</span>
+                    <span className="text-neutral-200 font-semibold">{project.role}</span>
+                  </div>
+                </div>
+              )}
+
+              {project.project_date && (
+                <div className="flex items-center gap-2 bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850">
+                  <Calendar className="size-4 text-lime-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-neutral-500 uppercase block font-mono">{t("Release Date")}</span>
+                    <span className="text-neutral-200 font-semibold">
+                      {new Date(project.project_date).toLocaleDateString(lang === "id" ? "id-ID" : "en-US", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="h-px w-full bg-neutral-800/80" />
+
+          {/* Description */}
+          <div className="space-y-2">
+            <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-400">{t("About the Project")}</h2>
+            <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
+              {project.description}
+            </p>
+          </div>
+
+          {/* Key Features */}
+          {featuresList.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-400">{t("Key Features & Technical Achievements")}</h2>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-neutral-300">
+                {featuresList.map((feature, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-2 p-2.5 rounded-xl bg-neutral-950/40 border border-neutral-850"
+                  >
+                    <CheckCircle2 className="size-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Tech Stack */}
+          {techstackList.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-400">{t("Technologies Used")}</h2>
+              <div className="flex flex-wrap gap-1.5">
+                {techstackList.map((tech, idx) => (
+                  <span
+                    key={idx}
+                    className="text-xs px-3 py-1 rounded-lg bg-neutral-950 text-neutral-200 border border-neutral-800 font-mono"
+                  >
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Image Gallery Screenshots */}
+          {galleryList.length > 0 && (
+            <div className="space-y-3 pt-4">
+              <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-400">
+                Project Screenshots & Visual Gallery ({galleryList.length})
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {galleryList.map((imgUrl, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setActiveImageIndex(index)}
+                    className="relative aspect-video rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950 hover:border-emerald-500/40 transition-all duration-300 group cursor-pointer"
+                  >
+                    <Image
+                      src={imgUrl}
+                      alt={`${project.title} Screenshot ${index + 1}`}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Links Bar */}
+          <div className="pt-6 border-t border-neutral-800/80 flex flex-wrap items-center gap-3">
+            {project.demo_link && project.demo_link !== "#" && (
+              <a
+                href={project.demo_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold text-xs py-3 px-5 rounded-xl transition-all duration-300 hover:-translate-y-0.5 shadow-md shadow-emerald-500/10"
+              >
+                <span>{t("Visit Live Project")}</span>
+                <ArrowUpRight className="size-4" />
+              </a>
+            )}
+
+            {project.github && project.github !== "#" && (
+              <a
+                href={project.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-neutral-800 border border-neutral-700 hover:border-neutral-600 text-neutral-200 text-xs py-3 px-5 rounded-xl transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <SiGithub className="size-4" />
+                <span>{t("Explore Source Code")}</span>
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive Gallery Lightbox */}
       <AnimatePresence>
-        {activeImageIndex !== null && project?.gallery && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4">
-            {/* Backdrop */}
+        {activeImageIndex !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setActiveImageIndex(null)}
-              className="absolute inset-0 bg-neutral-950/95 backdrop-blur-md cursor-zoom-out"
+              {...modalBackdrop}
+            onClick={() => setActiveImageIndex(null)}
+              className="absolute inset-0 bg-neutral-950/90 backdrop-blur-md cursor-zoom-out"
             />
 
-            {/* Container for content */}
-            <div className="relative max-w-5xl max-h-[80vh] w-full flex items-center justify-center z-10 select-none">
-              {/* Close Button */}
+            <div className="relative max-w-4xl w-full flex items-center justify-center z-10">
               <button
                 onClick={() => setActiveImageIndex(null)}
-                className="absolute -top-12 right-0 p-2 rounded-full bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-all cursor-pointer active:scale-95"
-                title="Close"
+                className="absolute -top-12 right-0 p-2 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white"
               >
                 <X className="size-5" />
               </button>
 
-              {/* Prev Button */}
-              {project.gallery.length > 1 && (
-                <button
-                  onClick={prevImage}
-                  className="absolute -left-4 md:-left-16 p-3 rounded-full bg-neutral-900/80 border border-neutral-800 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-all cursor-pointer active:scale-95 z-20"
-                  title="Previous"
-                >
-                  <ChevronLeft className="size-6" />
-                </button>
-              )}
-
-              {/* Image */}
-              <motion.div
-                key={activeImageIndex}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.25 }}
-                className="relative max-w-full max-h-[80vh] aspect-video w-full"
-              >
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-950">
                 <Image
-                  src={project.gallery[activeImageIndex]}
-                  alt={`${project.title} screenshot ${activeImageIndex + 1}`}
+                  src={
+                    galleryList[activeImageIndex] ||
+                    project.image ||
+                    "/images/brand-logo.png"
+                  }
+                  alt={t("Gallery Preview")}
                   fill
-                  className="object-contain rounded-2xl border border-neutral-800"
+                  className="object-contain"
                 />
-              </motion.div>
-
-              {/* Next Button */}
-              {project.gallery.length > 1 && (
-                <button
-                  onClick={nextImage}
-                  className="absolute -right-4 md:-right-16 p-3 rounded-full bg-neutral-900/80 border border-neutral-800 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-all cursor-pointer active:scale-95 z-20"
-                  title="Next"
-                >
-                  <ChevronRight className="size-6" />
-                </button>
-              )}
-            </div>
-
-            {/* Bottom Info Bar */}
-            <div className="z-10 mt-4 text-center">
-              <span className="text-neutral-400 text-xs tracking-widest uppercase font-semibold">
-                Image {activeImageIndex + 1} of {project.gallery.length}
-              </span>
+              </div>
             </div>
           </div>
         )}

@@ -39,18 +39,18 @@ const getPlatformDetails = (url) => {
     return {
       name: "Figma Live Embed",
       icon: Layout,
-      color: "text-purple-400",
-      bg: "bg-purple-500/10",
-      borderColor: "group-hover:border-purple-500/30"
+      color: "text-lime-400",
+      bg: "bg-lime-500/10",
+      borderColor: "group-hover:border-lime-500/30"
     };
   }
   
   return {
     name: "Interactive Preview",
     icon: Info,
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    borderColor: "group-hover:border-blue-500/30"
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    borderColor: "group-hover:border-emerald-500/30"
   };
 };
 

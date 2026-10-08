@@ -4,12 +4,87 @@ import { useState } from "react";
 import { Upload, Loader2, Plus, X, ChevronLeft, ChevronRight, Move } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
+import { useLanguage } from "@/hooks/useLanguage";
 
-const projectTypes = ["Web App", "Design", "Mobile App", "Desktop App", "Other"];
-const categories = ["Full-Stack Web", "Frontend", "Backend", "UI/UX Design", "Mobile", "Other"];
-const projectStatuses = ["In Progress", "Live", "Completed", "Design Phase", "Concept", "Maintenance", "Archived"];
+// `type` is the identity used by the projects filter and <Badge>: dev | creative | hybrid.
+const projectTypes = [
+  { value: "dev", label: "Developer (code / engineering)" },
+  { value: "creative", label: "Creative (design / media)" },
+  { value: "hybrid", label: "Hybrid (code + design)" },
+];
+
+// Everything that changes with the project type lives here.
+const typeConfig = {
+  dev: {
+    categories: ["Full-Stack Web", "Frontend", "Backend / API", "Mobile App", "Desktop App", "Other"],
+    statuses: ["In Progress", "Live", "Completed", "Maintenance", "Archived"],
+    titlePlaceholder: "e.g. LunasinYuk - Financial Tracker",
+    rolePlaceholder: "e.g. Lead Full-Stack Developer",
+    descriptionPlaceholder: "What problem does it solve, how is it built, and what was the outcome?",
+    toolsLabel: "Tech Stack",
+    toolsPlaceholder: "e.g. React, Next.js, Tailwind CSS, Supabase",
+    toolsHelp: "Comma-separated list of technologies.",
+    featuresLabel: "Key Features",
+    featuresPlaceholder: "e.g. Real-time updates, Google OAuth login, Responsive admin page",
+    featuresHelp: "Comma-separated list of important features.",
+    galleryLabel: "Screenshots Gallery",
+    imageLabel: "Main Thumbnail / Cover Screenshot",
+    showGithub: true,
+    githubLabel: "Source Code (GitHub)",
+    linkLabel: "Live Demo URL",
+    linkPlaceholder: "https://...",
+  },
+  creative: {
+    categories: ["UI/UX Design", "Branding & Identity", "Graphic Design", "Video & Motion", "Content Creation", "Other"],
+    statuses: ["Concept", "Design Phase", "In Progress", "Completed", "Live", "Archived"],
+    titlePlaceholder: "e.g. Stream Overlay Pack - Season 2",
+    rolePlaceholder: "e.g. UI/UX Designer, Video Editor",
+    descriptionPlaceholder: "Describe the brief, your creative direction, and the final result...",
+    toolsLabel: "Tools & Software",
+    toolsPlaceholder: "e.g. Figma, Photoshop, After Effects, OBS Studio",
+    toolsHelp: "Comma-separated list of tools you used.",
+    featuresLabel: "Deliverables",
+    featuresPlaceholder: "e.g. Logo set, Color palette, 12 social templates, Stream alerts",
+    featuresHelp: "Comma-separated list of what was delivered.",
+    galleryLabel: "Design Previews / Mockups",
+    imageLabel: "Cover Image",
+    showGithub: false,
+    githubLabel: "",
+    linkLabel: "Case Study / Behance / Video URL",
+    linkPlaceholder: "https://behance.net/... or https://youtube.com/...",
+  },
+  hybrid: {
+    categories: ["Full-Stack & UI/UX", "Design System", "Frontend & Design", "Product / MVP", "Other"],
+    statuses: ["Concept", "Design Phase", "In Progress", "Live", "Completed", "Maintenance", "Archived"],
+    titlePlaceholder: "e.g. Portfolio Platform - Design & Build",
+    rolePlaceholder: "e.g. Full-Stack Engineer & Lead UI/UX Designer",
+    descriptionPlaceholder: "Cover both sides: the design thinking and the engineering behind it...",
+    toolsLabel: "Tech Stack & Tools",
+    toolsPlaceholder: "e.g. Next.js, Tailwind CSS, Figma, Supabase",
+    toolsHelp: "Comma-separated list of technologies and design tools.",
+    featuresLabel: "Key Features & Deliverables",
+    featuresPlaceholder: "e.g. Design system, Real-time guestbook, Admin CMS",
+    featuresHelp: "Comma-separated list of features and design deliverables.",
+    galleryLabel: "Screenshots & Design Previews",
+    imageLabel: "Main Thumbnail / Cover Image",
+    showGithub: true,
+    githubLabel: "Source Code (GitHub)",
+    linkLabel: "Live Demo / Case Study URL",
+    linkPlaceholder: "https://...",
+  },
+};
+
+// Older rows stored descriptive types ("Web App", "Design"...). Map them onto the three identities.
+const normalizeType = (raw) => {
+  const v = String(raw || "").toLowerCase();
+  if (v === "dev" || v === "developer" || v === "web app" || v === "mobile app" || v === "desktop app") return "dev";
+  if (v === "creative" || v === "design") return "creative";
+  if (v === "hybrid" || v === "cross") return "hybrid";
+  return "dev";
+};
 
 export default function ProjectForm({ initialData = null, onSubmit, onCancel, buttonText = "Save Project" }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState(() => {
     if (initialData) {
       let currentStatus = "In Progress";
@@ -24,8 +99,8 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
         title: initialData.title || "",
         description: initialData.description || "",
         image: initialData.image || "",
-        type: initialData.type || "Web App",
-        category: initialData.category || "Full-Stack Web",
+        type: normalizeType(initialData.type),
+        category: initialData.category || typeConfig[normalizeType(initialData.type)].categories[0],
         techstack: initialData.techstack || [],
         demoLink: initialData.demoLink || initialData.demo_link || "",
         github: initialData.github || "",
@@ -40,8 +115,8 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
       title: "",
       description: "",
       image: "",
-      type: "Web App",
-      category: "Full-Stack Web",
+      type: "dev",
+      category: typeConfig.dev.categories[0],
       techstack: [],
       demoLink: "",
       github: "",
@@ -68,6 +143,20 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
 
   const handleChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const cfg = typeConfig[formData.type] || typeConfig.dev;
+
+  // Switching identity swaps the category/status lists, so reset values that no longer exist.
+  const handleTypeChange = (nextType) => {
+    const next = typeConfig[nextType];
+    setFormData((prev) => ({
+      ...prev,
+      type: nextType,
+      category: next.categories.includes(prev.category) ? prev.category : next.categories[0],
+      status: next.statuses.includes(prev.status) ? prev.status : next.statuses[0],
+      github: next.showGithub ? prev.github : "",
+    }));
   };
 
   const handleTechstackChange = (valStr) => {
@@ -125,7 +214,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
       }
     } catch (err) {
       console.error("Upload error:", err.message);
-      alert("Failed to upload image. Error: " + err.message);
+      alert(t("Failed to upload image. Error: ") + err.message);
     } finally {
       if (isGallery) {
         setUploadingGallery(false);
@@ -167,7 +256,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
       });
     } catch (err) {
       console.error("Upload error:", err.message);
-      alert("Failed to upload some gallery images. Error: " + err.message);
+      alert(t("Failed to upload some gallery images. Error: ") + err.message);
     } finally {
       setUploadingGallery(false);
     }
@@ -226,7 +315,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
       await onSubmit(formData);
     } catch (err) {
       console.error(err);
-      alert("Error saving project: " + err.message);
+      alert(t("Error saving project: ") + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -237,12 +326,12 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Title */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">Project Title</label>
+          <label className="text-neutral-300 font-medium text-sm">{t("Project Title")}</label>
           <input
             type="text"
             value={formData.title}
             onChange={(e) => handleChange("title", e.target.value)}
-            placeholder="e.g. LunasinYuk - Financial Tracker"
+            placeholder={t(cfg.titlePlaceholder)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
             required
           />
@@ -250,42 +339,42 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
 
         {/* Project Type */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">Project Type</label>
+          <label className="text-neutral-300 font-medium text-sm">{t("Project Focus")}</label>
           <select
             value={formData.type}
-            onChange={(e) => handleChange("type", e.target.value)}
+            onChange={(e) => handleTypeChange(e.target.value)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
             required
           >
             {projectTypes.map((opt) => (
-              <option key={opt} value={opt} className="bg-neutral-900">{opt}</option>
+              <option key={opt.value} value={opt.value} className="bg-neutral-900">{t(opt.label)}</option>
             ))}
           </select>
         </div>
 
         {/* Category */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">Category</label>
+          <label className="text-neutral-300 font-medium text-sm">{t("Category")}</label>
           <select
             value={formData.category}
             onChange={(e) => handleChange("category", e.target.value)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
             required
           >
-            {categories.map((opt) => (
-              <option key={opt} value={opt} className="bg-neutral-900">{opt}</option>
+            {[...new Set([formData.category, ...cfg.categories])].map((opt) => (
+              <option key={opt} value={opt} className="bg-neutral-900">{t(opt)}</option>
             ))}
           </select>
         </div>
 
         {/* Developer Role */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">Your Role</label>
+          <label className="text-neutral-300 font-medium text-sm">{t("Your Role")}</label>
           <input
             type="text"
             value={formData.role}
             onChange={(e) => handleChange("role", e.target.value)}
-            placeholder="e.g. Lead Full-Stack Developer, UI/UX Designer"
+            placeholder={t(cfg.rolePlaceholder)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
             required
           />
@@ -293,7 +382,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
 
         {/* Project Date */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">Project Date</label>
+          <label className="text-neutral-300 font-medium text-sm">{t("Completed / Launch Date")}</label>
           <input
             type="date"
             value={formData.project_date}
@@ -305,11 +394,11 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
 
         {/* Description */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">Description</label>
+          <label className="text-neutral-300 font-medium text-sm">{t("Description")}</label>
           <textarea
             value={formData.description}
             onChange={(e) => handleChange("description", e.target.value)}
-            placeholder="Describe the project goals, features, achievements..."
+            placeholder={t(cfg.descriptionPlaceholder)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 min-h-[120px] w-full"
             required
           />
@@ -317,13 +406,13 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
 
         {/* Image upload / URL */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">Main Thumbnail Image</label>
+          <label className="text-neutral-300 font-medium text-sm">{t(cfg.imageLabel)}</label>
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <input
               type="text"
               value={formData.image}
               onChange={(e) => handleChange("image", e.target.value)}
-              placeholder="Paste image URL or upload file below"
+              placeholder={t("Paste image URL or upload file below")}
               className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 grow"
             />
             
@@ -345,7 +434,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                 ) : (
                   <Upload className="size-4" />
                 )}
-                <span>{uploadingImage ? "Uploading..." : "Upload Image"}</span>
+                <span>{uploadingImage ? t("Uploading...") : t("Upload Image")}</span>
               </label>
             </div>
 
@@ -359,40 +448,40 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
 
         {/* Tech Stack */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">Tech Stack</label>
+          <label className="text-neutral-300 font-medium text-sm">{t(cfg.toolsLabel)}</label>
           <input
             type="text"
             value={techstackInput}
             onChange={(e) => handleTechstackChange(e.target.value)}
-            placeholder="e.g. React, Next.js, Tailwind CSS, Supabase"
+            placeholder={t(cfg.toolsPlaceholder)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
           />
-          <span className="text-neutral-500 text-[11px]">Comma-separated list of technologies.</span>
+          <span className="text-neutral-500 text-[11px]">{t(cfg.toolsHelp)}</span>
         </div>
 
         {/* Features */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">Key Features</label>
+          <label className="text-neutral-300 font-medium text-sm">{t(cfg.featuresLabel)}</label>
           <input
             type="text"
             value={featuresInput}
             onChange={(e) => handleFeaturesChange(e.target.value)}
-            placeholder="e.g. Real-time updates, OAuth google login, Responsive admin page"
+            placeholder={t(cfg.featuresPlaceholder)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
           />
-          <span className="text-neutral-500 text-[11px]">Comma-separated list of important features of this project.</span>
+          <span className="text-neutral-500 text-[11px]">{t(cfg.featuresHelp)}</span>
         </div>
 
         {/* Gallery upload / URL */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">Project Screenshots Gallery</label>
+          <label className="text-neutral-300 font-medium text-sm">{t(cfg.galleryLabel)}</label>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               <input
                 type="text"
                 value={galleryInput}
                 onChange={(e) => handleGalleryInputChange(e.target.value)}
-                placeholder="Paste screenshots URLs (comma separated) or upload files below"
+                placeholder={t("Paste screenshots URLs (comma separated) or upload files below")}
                 className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 grow"
               />
               
@@ -415,7 +504,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                   ) : (
                     <Upload className="size-4" />
                   )}
-                  <span>{uploadingGallery ? "Uploading..." : "Add to Gallery"}</span>
+                  <span>{uploadingGallery ? t("Uploading...") : t("Add to Gallery")}</span>
                 </label>
               </div>
             </div>
@@ -443,7 +532,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                       
                       {/* Drag handle icon / helper overlay on hover */}
                       <div className="absolute inset-0 bg-neutral-950/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
-                        <Move className="size-5 text-neutral-300 drop-shadow animate-pulse" />
+                        <Move className="size-5 text-neutral-300 drop-shadow " />
                       </div>
 
                       {/* Index badge */}
@@ -462,7 +551,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                                 handleMoveGalleryImage(idx, -1);
                               }}
                               className="p-1 rounded bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700/50 text-neutral-300 cursor-pointer transition-colors"
-                              title="Move Left"
+                              title={t("Move Left")}
                             >
                               <ChevronLeft className="size-3" />
                             </button>
@@ -475,7 +564,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                                 handleMoveGalleryImage(idx, 1);
                               }}
                               className="p-1 rounded bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700/50 text-neutral-300 cursor-pointer transition-colors"
-                              title="Move Right"
+                              title={t("Move Right")}
                             >
                               <ChevronRight className="size-3" />
                             </button>
@@ -489,7 +578,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                             handleRemoveGalleryImage(idx);
                           }}
                           className="p-1 rounded bg-red-950/80 hover:bg-red-900 border border-red-900/50 text-white cursor-pointer transition-colors"
-                          title="Remove Image"
+                          title={t("Remove Image")}
                         >
                           <X className="size-3" />
                         </button>
@@ -502,9 +591,10 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
           </div>
         </div>
 
-        {/* GitHub URL */}
+        {/* GitHub URL (code projects only) */}
+        {cfg.showGithub && (
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">GitHub URL (Optional)</label>
+          <label className="text-neutral-300 font-medium text-sm">{t(cfg.githubLabel)} <span className="text-neutral-600 font-normal text-xs">{t("(optional)")}</span></label>
           <input
             type="url"
             value={formData.github}
@@ -513,30 +603,31 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
           />
         </div>
+        )}
 
         {/* Live Demo URL */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">Live Demo URL (Optional)</label>
+          <label className="text-neutral-300 font-medium text-sm">{t(cfg.linkLabel)} <span className="text-neutral-600 font-normal text-xs">{t("(optional)")}</span></label>
           <input
             type="url"
             value={formData.demoLink}
             onChange={(e) => handleChange("demoLink", e.target.value)}
-            placeholder="https://..."
+            placeholder={t(cfg.linkPlaceholder)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
           />
         </div>
 
         {/* Status Dropdown */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">Project Status</label>
+          <label className="text-neutral-300 font-medium text-sm">{t("Project Status")}</label>
           <select
             value={formData.status}
             onChange={(e) => handleChange("status", e.target.value)}
             className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer w-full"
             required
           >
-            {projectStatuses.map((opt) => (
-              <option key={opt} value={opt} className="bg-neutral-900">{opt}</option>
+            {[...new Set([formData.status, ...cfg.statuses])].map((opt) => (
+              <option key={opt} value={opt} className="bg-neutral-900">{t(opt)}</option>
             ))}
           </select>
         </div>
@@ -548,15 +639,13 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
           type="button"
           onClick={onCancel}
           className="px-5 py-2.5 text-sm text-neutral-400 hover:text-white transition-colors cursor-pointer"
-        >
-          Cancel
-        </button>
+        >{t("Cancel")}</button>
         <button
           type="submit"
           disabled={isSubmitting || uploadingImage || uploadingGallery}
           className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium text-sm px-6 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-600/10 active:scale-95"
         >
-          {isSubmitting ? "Saving..." : buttonText}
+          {isSubmitting ? t("Saving...") : t(buttonText)}
         </button>
       </div>
     </form>

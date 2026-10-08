@@ -1,39 +1,31 @@
 "use client";
 
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import SideNav from "../../components/custom/SideNav";
-import SpotlightCard from "@/components/SpotlightCard";
-import { Badge } from "@/components/ui/Badge";
 import Image from "next/image";
-import { ArrowUpRight, Plus, Edit, Trash2, X, Calendar, Award, Hash, ExternalLink, ShieldCheck } from "lucide-react";
-import { child, parent } from "@/constants/animation";
+import { ArrowUpRight, Plus, Edit, Trash2, X, Calendar, Award, ExternalLink, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import CrudModal from "@/components/custom/CrudModal";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { achievementFields } from "@/constants/forms";
+import Badge from "@/components/custom/Badge";
+import { useLanguage } from "@/hooks/useLanguage";
+import { modalBackdrop, modalPanel, listItem } from "@/constants/animation";
 
-gsap.registerPlugin(ScrollTrigger);
-
-export default function Achievement() {
-  // Format date
+export default function AchievementPage() {
+  const { t, lang } = useLanguage();
   const formatMonthYear = (dateString) => {
     if (!dateString) return "Present";
-
     const date = new Date(dateString);
-
     if (isNaN(date)) return dateString;
-
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(lang === "id" ? "id-ID" : "en-US", {
       month: "short",
       year: "numeric",
     });
   };
 
-  // --- 1. State Management ---
   const [achievements, setAchievements] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,12 +34,13 @@ export default function Achievement() {
   const [selectedType, setSelectedType] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // --- 1.5. Derived State & Filter Logic ---
   const uniqueTypes = ["All", ...new Set(achievements.map((item) => item.type))];
   const uniqueCategories = ["All", ...new Set(achievements.map((item) => item.category))];
 
   const filteredAchievements = achievements.filter((achieve) => {
-    const matchesSearch = achieve.title.toLowerCase().includes(searchQuery.toLowerCase()) || achieve.organizer.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      achieve.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      achieve.organizer?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType === "All" || achieve.type === selectedType;
     const matchesCategory = selectedCategory === "All" || achieve.category === selectedCategory;
 
@@ -58,56 +51,6 @@ export default function Achievement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAchievement, setEditingAchievement] = useState(null);
   const [previewAchievement, setPreviewAchievement] = useState(null);
-
-  // 3D Card Tilt state for Certificate Preview
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
-  const [sheenStyle, setSheenStyle] = useState({});
-  const [previewAspect, setPreviewAspect] = useState(297 / 210);
-
-  const handleClosePreview = () => {
-    setPreviewAchievement(null);
-    setRotateX(0);
-    setRotateY(0);
-    setSheenStyle({});
-    setPreviewAspect(297 / 210);
-  };
-
-  const handleCardMouseMove = (e) => {
-    const card = e.currentTarget;
-    const box = card.getBoundingClientRect();
-    const x = e.clientX - box.left;
-    const y = e.clientY - box.top;
-    
-    const xPercent = (x / box.width) * 100;
-    const yPercent = (y / box.height) * 100;
-    
-    // Tilt angle (-10 to 10 degrees)
-    const rotX = -((y - box.height / 2) / (box.height / 2)) * 10;
-    const rotY = ((x - box.width / 2) / (box.width / 2)) * 10;
-    
-    setRotateX(rotX);
-    setRotateY(rotY);
-    setSheenStyle({
-      background: `radial-gradient(circle at ${xPercent}% ${yPercent}%, rgba(255, 255, 255, 0.15) 0%, transparent 60%)`,
-    });
-  };
-
-  const handleCardMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-    setSheenStyle({});
-  };
-
-  const achievementFields = [
-    { name: "title", label: "Title", required: true },
-    { name: "organizer", label: "Organizer", required: true },
-    { name: "credentialId", label: "Credential ID / License", required: false },
-    { name: "image", label: "Certificate Image", type: "image", required: false },
-    { name: "issuedDate", label: "Issued Date", type: "date", required: true },
-    { name: "type", label: "Type", type: "select", options: ["Certification", "Award", "Course", "Participation", "Professional", "other"], required: true },
-    { name: "category", label: "Category", type: "select", options: ["Tech", "Design", "Language", "Management", "Other"], required: true },
-  ];
 
   const handleOpenAdd = () => {
     setEditingAchievement(null);
@@ -124,13 +67,13 @@ export default function Achievement() {
   const handleDelete = async (e, id) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this achievement?")) return;
+    if (!confirm(t("Are you sure you want to delete this achievement?"))) return;
     try {
       const { error } = await supabase.from("achievements").delete().eq("id", id);
       if (error) throw error;
       setAchievements((prev) => prev.filter((a) => a.id !== id));
     } catch (err) {
-      alert("Error deleting: " + err.message);
+      alert(t("Error deleting: ") + err.message);
     }
   };
 
@@ -153,20 +96,17 @@ export default function Achievement() {
         .select();
       if (error) throw error;
 
-      const returnedRow = (data && data.length > 0) ? data[0] : { ...editingAchievement, ...payload, credential_id: payload.credential_id, issued_date: payload.issued_date };
+      const returnedRow = data && data.length > 0 ? data[0] : { ...editingAchievement, ...payload };
       const formatted = { ...returnedRow, credentialId: returnedRow.credential_id, issuedDate: returnedRow.issued_date };
       setAchievements((prev) => {
         const updated = prev.map((a) => (a.id === editingAchievement.id ? formatted : a));
         return updated.sort((a, b) => new Date(b.issuedDate) - new Date(a.issuedDate));
       });
     } else {
-      const { data, error } = await supabase
-        .from("achievements")
-        .insert([payload])
-        .select();
+      const { data, error } = await supabase.from("achievements").insert([payload]).select();
       if (error) throw error;
 
-      const returnedRow = (data && data.length > 0) ? data[0] : { id: Date.now(), ...payload, credential_id: payload.credential_id, issued_date: payload.issued_date };
+      const returnedRow = data && data.length > 0 ? data[0] : { id: Date.now(), ...payload };
       const formatted = { ...returnedRow, credentialId: returnedRow.credential_id, issuedDate: returnedRow.issued_date };
       setAchievements((prev) => {
         const updated = [...prev, formatted];
@@ -175,24 +115,21 @@ export default function Achievement() {
     }
   };
 
-  // --- 2. Fetch Data dari Supabase ---
   useEffect(() => {
     const fetchAchievements = async () => {
       try {
-        const { data, error } = await supabase.from("achievements").select("*").order("issued_date", { ascending: false }); // Mengurutkan berdasarkan tanggal terbit terbaru
-
+        const { data, error } = await supabase.from("achievements").select("*").order("issued_date", { ascending: false });
         if (error) throw error;
 
-        // Mapping data dari snake_case (DB) ke camelCase (UI)
-        const formattedData = data.map((item) => ({
+        const formattedData = (data || []).map((item) => ({
           ...item,
           credentialId: item.credential_id,
           issuedDate: item.issued_date,
         }));
 
         setAchievements(formattedData);
-      } catch (error) {
-        setError(error.message);
+      } catch (err) {
+        setError(err.message);
       } finally {
         setIsLoading(false);
       }
@@ -201,385 +138,194 @@ export default function Achievement() {
     fetchAchievements();
   }, []);
 
-  // --- 2.5. Scroll-triggered Reveal (ScrollTrigger) Animation ---
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    const ctx = gsap.context(() => {
-      const cards = gsap.utils.toArray(".achievement-card");
-      
-      // Reset state for reset/re-run of filter/search
-      gsap.set(cards, { opacity: 0, y: 40 });
-
-      cards.forEach((card) => {
-        gsap.to(card, {
-          opacity: 1,
-          y: 0,
-          duration: 0.6,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: card,
-            start: "top 90%",
-            toggleActions: "play none none none",
-          },
-        });
-      });
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, [filteredAchievements, isLoading]);
-
-
-
-  // --- 4. Fungsi Render Konten (Untuk handle Loading & Error tanpa merusak layout) ---
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-6">
-          {/* Header skeletons */}
-          <div className="space-y-2.5 animate-pulse">
-            <div className="h-4 w-40 bg-neutral-800/60 rounded-md" />
-            <div className="h-4.5 w-48 bg-neutral-800/60 rounded-md" />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 animate-pulse">
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="rounded-3xl border border-neutral-800/80 bg-neutral-900/40 p-0 flex flex-col gap-3 h-[350px]">
-                {/* Image Placeholder */}
-                <div className="w-full aspect-[297/210] rounded-t-3xl bg-neutral-800/50" />
-                {/* Info Placeholders */}
-                <div className="px-4 py-2 flex flex-col grow gap-2.5">
-                  <div className="h-3 w-1/3 bg-neutral-800/60 rounded-md" />
-                  <div className="h-4 w-5/6 bg-neutral-800/60 rounded-md" />
-                  <div className="h-3.5 w-1/2 bg-neutral-800/40 rounded-md" />
-                  <div className="mt-auto pt-4 pb-2">
-                    <div className="flex gap-2 mb-4">
-                      <div className="h-5 w-16 bg-neutral-800/50 rounded-full" />
-                      <div className="h-5 w-16 bg-neutral-800/50 rounded-full" />
-                    </div>
-                    <hr className="border-neutral-800/80 mb-3" />
-                    <div className="h-3 w-24 bg-neutral-800/40 rounded" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (error) {
-      return <div className="text-center py-20 text-red-500 bg-red-500/10 rounded-xl border border-red-500/20">Error: {error}</div>;
-    }
-
-    return (
-      <>
-        {/* Filter Section */}
-        <div className="flex flex-col md:flex-row gap-4 justify-between w-full">
-          <Input
-            type="text"
-            placeholder="Search title or organizer..."
-            className="bg-neutral-800 border-neutral-700 w-full md:max-w-xs text-neutral-200 focus-visible:ring-emerald-500/50"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-
-          <div className="flex gap-3 w-full md:w-auto">
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-full md:w-37.5 bg-neutral-800 border-neutral-700 text-neutral-200 focus:ring-emerald-500/50">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-neutral-700 text-neutral-200">
-                {uniqueTypes.map((type) => (
-                  <SelectItem key={type} value={type} className="focus:bg-neutral-700 focus:text-white cursor-pointer">
-                    {type === "All" ? "All Types" : type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full md:w-40 bg-neutral-800 border-neutral-700 text-neutral-200 focus:ring-emerald-500/50">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-neutral-700 text-neutral-200">
-                {uniqueCategories.map((category) => (
-                  <SelectItem key={category} value={category} className="focus:bg-neutral-700 focus:text-white cursor-pointer">
-                    {category === "All" ? "All Categories" : category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <p className="text-neutral-400 font-medium text-sm">Showing {filteredAchievements.length} achievements</p>
-
-        {/* List Section */}
-        <div ref={containerRef} className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4">
-          {[...filteredAchievements].map((achieve) => (
-            <div key={achieve.id} className="achievement-card h-full">
-              {/* Diperbaiki p-0! menjadi !p-0 */}
-              <SpotlightCard
-                onClick={() => setPreviewAchievement(achieve)}
-                className="custom-spotlight-card !p-0 flex flex-col gap-3 rounded-3xl h-full group relative cursor-pointer hover:border-neutral-700 transition-all duration-300"
-                spotlightColor="rgba(0, 229, 255, 0.15)"
-              >
-                {isAdmin && (
-                  <div className="absolute top-3 right-3 z-20 flex gap-2">
-                    <button
-                      onClick={(e) => handleOpenEdit(e, achieve)}
-                      className="p-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 backdrop-blur transition-all cursor-pointer"
-                      title="Edit Achievement"
-                    >
-                      <Edit className="size-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(e, achieve.id)}
-                      className="p-1.5 rounded-lg bg-neutral-900/80 hover:bg-red-950/80 text-neutral-300 hover:text-red-405 border border-neutral-800 hover:border-red-900 backdrop-blur transition-all cursor-pointer"
-                      title="Delete Achievement"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                )}
-                <div className="relative w-full aspect-[297/210] rounded-t-3xl overflow-hidden border-b border-neutral-700/50">
-                  {achieve.image && <Image src={achieve.image} alt={achieve.title} fill loading="eager" className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-w-7xl) 33vw, 100vw" priority={false} />}
-                </div>
-
-                <div className="px-2.5 py-2 sm:px-4 sm:py-3 flex flex-col grow">
-                  <div className="flex flex-col gap-1 sm:gap-1.5">
-                    <span className="text-[10px] sm:text-xs font-mono text-neutral-500 tracking-wider truncate" title={achieve.credentialId}>{achieve.credentialId}</span>
-                    <h3 className="text-white font-medium text-xs sm:text-sm md:text-base tracking-tight leading-snug line-clamp-2" title={achieve.title}>{achieve.title}</h3>
-                    <p className="text-neutral-400 text-xs sm:text-sm truncate">{achieve.organizer}</p>
-                  </div>
-
-                  <div className="mt-auto flex flex-col pt-3 sm:pt-4 pb-1 sm:pb-2">
-                    <div className="flex w-full flex-wrap justify-start gap-1 sm:gap-2 mb-3 sm:mb-4">
-                      <Badge variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 bg-neutral-800 text-neutral-300 border-neutral-700">
-                        {achieve.type}
-                      </Badge>
-                      <Badge variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 bg-neutral-800 text-neutral-300 border-neutral-700">
-                        {achieve.category}
-                      </Badge>
-                    </div>
-
-                    <div>
-                      <hr className="border-neutral-700/80 mb-2 sm:mb-3" />
-                      <span className="text-neutral-500 text-[9px] sm:text-[11px] font-semibold tracking-wider sm:tracking-widest uppercase">ISSUED ON {formatMonthYear(achieve.issued_date)}</span>
-                    </div>
-                  </div>
-                </div>
-              </SpotlightCard>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredAchievements.length === 0 && <div className="w-full text-center py-12 text-neutral-500 bg-neutral-900/20 rounded-xl border border-neutral-800 border-dashed">No achievements found matching your criteria.</div>}
-      </>
-    );
-  };
-
   return (
-    <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 px-4 lg:px-6">
-      <SideNav />
-
-      <motion.div animate={{ y: 0, opacity: 1 }} initial={{ y: 20, opacity: 0 }} transition={{ type: "spring", stiffness: 100, damping: 20 }} className="col-span-1 lg:col-span-9 w-full space-y-6 pb-16">
-        <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-medium tracking-tighter">Achievement</h1>
-            <p className="text-neutral-400 text-base md:text-lg leading-relaxed">A curated showcase of certifications and milestones reflecting my ongoing commitment to professional growth and technical excellence.</p>
+    <div className="space-y-6 sm:space-y-14 pb-12">
+      {/* Header */}
+      <section className="space-y-3 pt-2 sm:pt-4 border-b border-neutral-800/80 pb-5 sm:pb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Badge type="hybrid" label={t("Certifications & Honors")} size="sm" />
           </div>
+
           {isAdmin && (
             <button
               onClick={handleOpenAdd}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-all cursor-pointer shrink-0 shadow-lg shadow-emerald-600/10 active:scale-95"
+              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer shrink-0 shadow-md shadow-emerald-600/10 active:scale-95"
             >
               <Plus className="size-4" />
-              <span>Add Achievement</span>
+              <span>{t("Add Achievement")}</span>
             </button>
           )}
-        </section>
+        </div>
 
-        <hr className="border-neutral-500 border-dashed" />
+        <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">{t("Achievements & Verified Licenses")}</h1>
+        <p className="text-sm sm:text-base text-neutral-400 max-w-2xl leading-relaxed">{t("A collection of verified technical certifications, design awards, and industry credentials.")}</p>
+      </section>
 
-        <section className="space-y-6">{renderContent()}</section>
-
-        <CrudModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title={editingAchievement ? "Edit Achievement" : "Add Achievement"}
-          onSubmit={handleSave}
-          initialData={editingAchievement}
-          fields={achievementFields}
+      {/* Filter Bar */}
+      <section className="flex flex-col md:flex-row gap-3 md:items-center justify-between w-full">
+        <input
+          type="text"
+          placeholder={t("Search title or organizer...")}
+          className="px-3.5 py-3 sm:py-2 rounded-xl bg-neutral-900/60 border border-neutral-800 text-base sm:text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500/60 transition-colors w-full md:max-w-xs"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
 
-        {/* Certificate Preview Lightbox / Details Modal */}
-        <AnimatePresence>
-          {previewAchievement && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                onClick={handleClosePreview}
-                className="absolute inset-0 bg-neutral-950/85 backdrop-blur-md"
-              />
+        <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0 md:flex-wrap md:overflow-visible scrollbar-hide">
+          {uniqueTypes.map((type) => (
+            <button
+              key={type}
+              onClick={() => setSelectedType(type)}
+              className={`py-2 sm:py-1.5 px-3.5 sm:px-3 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                selectedType === type
+                  ? "bg-neutral-800 text-white border border-neutral-700 shadow-sm"
+                  : "bg-neutral-900/60 text-neutral-400 border border-neutral-800 hover:text-neutral-200"
+              }`}
+            >
+              {type === "All" ? t("All Types") : t(type)}
+            </button>
+          ))}
+        </div>
+      </section>
 
-              {/* Modal Box */}
+      {/* Cards Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 ">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div key={n} className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-4 h-64 flex flex-col gap-3">
+              <div className="w-full aspect-video rounded-xl bg-neutral-800/50" />
+              <div className="h-4 w-1/2 bg-neutral-800/60 rounded" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="py-10 text-center text-red-400 bg-red-950/20 border border-red-900/30 rounded-2xl">
+          Error: {error}
+        </div>
+      ) : (
+        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <AnimatePresence mode="popLayout">
+            {filteredAchievements.map((achieve) => (
               <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 15 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="relative bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-5xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10 flex flex-col md:flex-row max-h-[90vh] md:h-[600px]"
+                key={achieve.id}
+                layout
+                {...listItem}
+                onClick={() => setPreviewAchievement(achieve)}
+                className="group relative p-3 sm:p-4 rounded-2xl bg-neutral-900/40 border border-neutral-800/80 hover:border-neutral-700 transition-all duration-300 sm:hover:-translate-y-1 active:scale-[0.98] sm:active:scale-100 shadow-sm flex flex-col justify-between space-y-3 cursor-pointer"
               >
-                {/* Close Button (Floating Top Right of Card for easier tap/click) */}
-                <button
-                  onClick={handleClosePreview}
-                  className="absolute top-4 right-4 z-40 p-2 rounded-full bg-neutral-950/80 border border-neutral-800 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-all duration-200 cursor-pointer shadow-lg active:scale-95"
-                >
-                  <X className="size-4" />
-                </button>
+                {isAdmin && (
+                  <div className="absolute top-4 right-4 z-20 flex gap-1.5">
+                    <button
+                      onClick={(e) => handleOpenEdit(e, achieve)}
+                      className="p-2 sm:p-1.5 rounded-lg bg-neutral-950/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 backdrop-blur transition-all"
+                    >
+                      <Edit className="size-3.5 sm:size-3" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, achieve.id)}
+                      className="p-2 sm:p-1.5 rounded-lg bg-neutral-950/80 hover:bg-red-950/80 text-neutral-300 hover:text-red-400 border border-neutral-800 hover:border-red-900 backdrop-blur transition-all"
+                    >
+                      <Trash2 className="size-3.5 sm:size-3" />
+                    </button>
+                  </div>
+                )}
 
-                {/* Left Side: Image Preview with 3D Tilt */}
-                <div className="w-full md:flex-1 h-[320px] md:h-full bg-neutral-950 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-neutral-800 overflow-hidden group/image-container">
-                  {/* Glowing Radial Background based on achievement type */}
-                  <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.12),transparent_70%)] pointer-events-none" />
-                  
-                  {/* Tech Grid overlay */}
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-                  
-                  {previewAchievement.image ? (
-                    <div className="w-full h-full flex items-center justify-center p-4 sm:p-6 [perspective:1000px]">
-                      <motion.div
-                        onMouseMove={handleCardMouseMove}
-                        onMouseLeave={handleCardMouseLeave}
-                        animate={{
-                          rotateX: rotateX,
-                          rotateY: rotateY,
-                        }}
-                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                        className="relative w-full max-w-[640px] max-h-[90%] rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.7)] border border-neutral-700/40 bg-neutral-900 cursor-grab active:cursor-grabbing"
-                        style={{ 
-                          transformStyle: "preserve-3d",
-                          aspectRatio: previewAspect
-                        }}
-                      >
-                        {/* Certificate Image */}
-                        <Image
-                          src={previewAchievement.image}
-                          alt={previewAchievement.title}
-                          fill
-                          className="object-contain pointer-events-none select-none"
-                          sizes="(max-w-4xl) 70vw, 100vw"
-                          priority
-                          onLoad={(e) => {
-                            const img = e.target;
-                            if (img.naturalWidth && img.naturalHeight) {
-                              setPreviewAspect(img.naturalWidth / img.naturalHeight);
-                            }
-                          }}
-                        />
-                        
-                        {/* Interactive Sheen Overlay */}
-                        <div 
-                          className="absolute inset-0 pointer-events-none transition-opacity duration-200" 
-                          style={sheenStyle}
-                        />
-
-                        {/* Subtle Card Border Highlight */}
-                        <div className="absolute inset-0 border border-white/5 rounded-xl pointer-events-none" />
-                      </motion.div>
-                    </div>
+                <div className="relative w-full aspect-[297/210] rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
+                  {achieve.image ? (
+                    <Image src={achieve.image} alt={achieve.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
-                    <div className="text-center py-12 text-neutral-500 flex flex-col items-center gap-3 w-full h-full justify-center">
-                      <Award className="size-16 text-neutral-800 animate-pulse" />
-                      <span className="font-medium text-neutral-400">No certificate image uploaded</span>
-                    </div>
-                  )}
-                  
-                  {/* Floating Action Button */}
-                  {previewAchievement.image && (
-                    <div className="absolute bottom-4 left-4 z-20">
-                      <a
-                        href={previewAchievement.image}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 backdrop-blur text-xs font-medium transition-all shadow-lg active:scale-95 cursor-pointer"
-                      >
-                        <ExternalLink className="size-3.5" />
-                        <span>View Full Image</span>
-                      </a>
+                    <div className="w-full h-full flex items-center justify-center text-neutral-600">
+                      <Award className="size-10" />
                     </div>
                   )}
                 </div>
 
-                {/* Right Side: Details Info */}
-                <div className="w-full md:w-[340px] p-6 md:p-8 flex flex-col justify-between overflow-y-auto bg-neutral-900 relative shrink-0">
-                  <div className="space-y-6">
-                    {/* Header: Title and Organizer */}
-                    <div className="space-y-3.5">
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                          {previewAchievement.type}
-                        </span>
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-300 bg-neutral-800 border border-neutral-700/80 px-2 py-0.5 rounded-md">
-                          {previewAchievement.category}
-                        </span>
-                      </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-400">
+                    {t(achieve.type)} • {t(achieve.category)}
+                  </span>
+                  <h3 className="text-sm font-bold text-neutral-100 line-clamp-2" title={achieve.title}>
+                    {achieve.title}
+                  </h3>
+                  <p className="text-xs text-neutral-400 truncate">{achieve.organizer}</p>
+                </div>
 
-                      <h3 className="text-lg md:text-xl font-bold text-white tracking-tight leading-snug">
-                        {previewAchievement.title}
-                      </h3>
-                      <p className="text-neutral-400 text-sm font-medium flex items-center gap-2">
-                        <Award className="size-4.5 text-neutral-500 shrink-0" />
-                        {previewAchievement.organizer}
-                      </p>
-                    </div>
-
-                    {/* Metadata Section */}
-                    <div className="space-y-4 pt-4 border-t border-neutral-800">
-                      {/* Credential ID */}
-                      {previewAchievement.credentialId && (
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider block">Credential ID</span>
-                          <div className="text-neutral-300 text-sm font-medium font-mono break-all bg-neutral-950/50 px-3 py-2 rounded-xl border border-neutral-800/80 flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 truncate">
-                              <ShieldCheck className="size-4 text-emerald-500 shrink-0" />
-                              <span className="truncate">{previewAchievement.credentialId}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Issue Date */}
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider block">Issue Date</span>
-                        <div className="text-neutral-300 text-sm font-medium bg-neutral-950/50 px-3 py-2 rounded-xl border border-neutral-800/80 flex items-center gap-2">
-                          <Calendar className="size-4 text-neutral-500 shrink-0" />
-                          <span>{formatMonthYear(previewAchievement.issued_date)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer Branding Info */}
-                  <div className="mt-8 pt-4 border-t border-neutral-800 text-center text-neutral-600 text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-1.5">
-                    <ShieldCheck className="size-3.5 text-emerald-500/50" />
-                    <span>Verified Credential</span>
-                  </div>
+                <div className="pt-2 border-t border-neutral-800/60 flex items-center justify-between text-xs text-neutral-500">
+                  <span className="text-[11px] font-mono">{t("Issued")} {formatMonthYear(achieve.issuedDate)}</span>
+                  <ArrowUpRight className="size-3.5 text-neutral-400 group-hover:text-emerald-400 transition-colors" />
                 </div>
               </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {/* Crud Modal */}
+      <CrudModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingAchievement ? "Edit Achievement" : "Add Achievement"}
+        onSubmit={handleSave}
+        initialData={editingAchievement}
+        fields={achievementFields}
+        submitLabel={editingAchievement ? "Save Changes" : "Add Achievement"}
+        subtitle="Certificates, awards, and courses shown on the Achievement page."
+      />
+
+      {/* Preview Lightbox Modal */}
+      <AnimatePresence>
+        {previewAchievement && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <motion.div
+              {...modalBackdrop}
+            onClick={() => setPreviewAchievement(null)}
+              className="absolute inset-0 bg-neutral-950/85 backdrop-blur-md"
+            />
+
+            <motion.div
+              {...modalPanel}
+            className="relative bg-neutral-900 border border-neutral-800 rounded-t-2xl rounded-b-none sm:rounded-2xl w-full max-w-5xl max-h-[88vh] sm:max-h-[90vh] overflow-y-auto md:overflow-hidden shadow-2xl z-10 flex flex-col md:flex-row"
+            >
+              <button
+                onClick={() => setPreviewAchievement(null)}
+                className="absolute top-3 right-3 z-30 p-2.5 rounded-full bg-neutral-950/90 border border-neutral-800 text-neutral-300 hover:text-white"
+              >
+                <X className="size-4" />
+              </button>
+
+              <div className="w-full md:w-3/5 aspect-[4/3] md:aspect-auto md:min-h-[26rem] relative bg-neutral-950 shrink-0">
+                {previewAchievement.image ? (
+                  <Image src={previewAchievement.image} alt={previewAchievement.title} fill className="object-contain p-4" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-neutral-600">
+                    <Award className="size-12" />
+                  </div>
+                )}
+              </div>
+
+              <div className="w-full md:w-2/5 p-6 sm:p-8 flex flex-col justify-between gap-6">
+                <div className="space-y-4">
+                  <span className="text-xs font-mono uppercase font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md inline-block">
+                    {t(previewAchievement.type)} • {t(previewAchievement.category)}
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight pr-8">{previewAchievement.title}</h2>
+                  <p className="text-sm sm:text-base text-neutral-300 font-medium">{t("Issued by:")} {previewAchievement.organizer}</p>
+                  {previewAchievement.credentialId && (
+                    <p className="text-xs sm:text-sm font-mono text-neutral-400 bg-neutral-950/60 p-3 rounded-lg border border-neutral-800 break-all">
+                      ID: {previewAchievement.credentialId}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-xs sm:text-sm font-mono text-neutral-500 pt-3 border-t border-neutral-800">
+                  {t("Issued date:")} {formatMonthYear(previewAchievement.issuedDate)}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

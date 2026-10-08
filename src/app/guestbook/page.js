@@ -4,15 +4,16 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
-import SideNav from "@/components/custom/SideNav";
 import { motion, AnimatePresence } from "motion/react";
 import { Trash2, Send, Smile, Loader2, CornerUpLeft, X } from "lucide-react";
 import { PiChatText } from "react-icons/pi";
+import { useLanguage } from "@/hooks/useLanguage";
 
 // List of allowed emojis for reactions
 const EMOJI_LIST = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 export default function Guestbook() {
+  const { t, lang } = useLanguage();
   const { user, isAdmin, signInWithGoogle } = useAuth();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -132,7 +133,7 @@ export default function Guestbook() {
         setTimeout(() => scrollToBottom("smooth"), 50);
       }
     } catch (err) {
-      alert("Failed to send message: " + err.message);
+      alert(t("Failed to send message: ") + err.message);
     } finally {
       setIsSending(false);
     }
@@ -140,21 +141,21 @@ export default function Guestbook() {
 
   // Handle Delete Message
   const handleDeleteMessage = async (id) => {
-    if (!confirm("Are you sure you want to delete this message?")) return;
+    if (!confirm(t("Are you sure you want to delete this message?"))) return;
 
     try {
       const { error } = await supabase.from("guestbook").delete().eq("id", id);
       if (error) throw error;
       setMessages((prev) => prev.filter((msg) => msg.id !== id));
     } catch (err) {
-      alert("Error deleting message: " + err.message);
+      alert(t("Error deleting message: ") + err.message);
     }
   };
 
   // Handle Emoji Reaction
   const handleReact = async (messageId, emoji) => {
     if (!user) {
-      alert("Please sign in to react to messages!");
+      alert(t("Please sign in to react to messages!"));
       return;
     }
 
@@ -201,7 +202,7 @@ export default function Guestbook() {
   // Format date helper
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("id-ID", {
+    return date.toLocaleDateString(lang === "id" ? "id-ID" : "en-US", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -211,24 +212,19 @@ export default function Guestbook() {
   };
 
   return (
-    <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 px-2 sm:px-4 lg:px-6">
-      <SideNav />
+    <div className="w-full">
 
       <motion.div
         animate={{ y: 0, opacity: 1 }}
         initial={{ y: 20, opacity: 0 }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className="col-span-1 lg:col-span-9 w-full space-y-6 pb-24 lg:pb-16 flex flex-col h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)]"
+        className="w-full space-y-6 pb-4 flex flex-col h-[calc(100vh-11rem)] min-h-[28rem]"
       >
         {/* Header */}
         <section className="flex flex-col gap-2 shrink-0">
           <h1 className="text-2xl font-medium tracking-tighter flex items-center gap-2">
-            <PiChatText className="size-6 text-emerald-500" />
-            Guestbook
-          </h1>
-          <p className="text-neutral-400 text-sm md:text-base leading-relaxed">
-            Feel free to share your thoughts, suggestions, questions, or anything else!
-          </p>
+            <PiChatText className="size-6 text-emerald-500" />{t("Guestbook")}</h1>
+          <p className="text-neutral-400 text-sm md:text-base leading-relaxed">{t("Feel free to share your thoughts, suggestions, questions, or anything else!")}</p>
         </section>
 
         <hr className="border-neutral-800 border-dashed shrink-0" />
@@ -238,12 +234,12 @@ export default function Guestbook() {
           {isLoading ? (
             <div className="grow flex flex-col items-center justify-center gap-2 text-neutral-500">
               <Loader2 className="size-8 animate-spin text-emerald-500" />
-              <span>Loading messages...</span>
+              <span>{t("Loading messages...")}</span>
             </div>
           ) : messages.length === 0 ? (
             <div className="grow flex flex-col items-center justify-center text-center p-8 text-neutral-500 border border-dashed border-neutral-800 rounded-2xl">
               <PiChatText className="size-12 mb-3 text-neutral-700" />
-              <p className="text-sm font-medium">No messages yet. Be the first to write something!</p>
+              <p className="text-sm font-medium">{t("No messages yet. Be the first to write something!")}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-6">
@@ -334,7 +330,7 @@ export default function Guestbook() {
                                 setActiveReactionMenu(activeReactionMenu === msg.id ? null : msg.id)
                               }
                               className="flex items-center justify-center size-6 rounded-full border border-neutral-800 hover:border-neutral-700 text-neutral-500 hover:text-neutral-300 bg-neutral-900/50 hover:bg-neutral-900 transition-colors cursor-pointer"
-                              title="React to message"
+                              title={t("React to message")}
                             >
                               <Smile className="size-3.5" />
                             </button>
@@ -364,7 +360,7 @@ export default function Guestbook() {
                           <button
                             onClick={() => setReplyingTo(msg)}
                             className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 p-1 rounded hover:bg-neutral-800 text-neutral-500 hover:text-neutral-300 transition-all duration-200 cursor-pointer"
-                            title="Reply to message"
+                            title={t("Reply to message")}
                           >
                             <CornerUpLeft className="size-3.5" />
                           </button>
@@ -375,7 +371,7 @@ export default function Guestbook() {
                           <button
                             onClick={() => handleDeleteMessage(msg.id)}
                             className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-neutral-500 hover:text-red-400 transition-all duration-200 cursor-pointer ml-1"
-                            title="Delete message"
+                            title={t("Delete message")}
                           >
                             <Trash2 className="size-3.5" />
                           </button>
@@ -416,7 +412,7 @@ export default function Guestbook() {
                 {replyingTo && (
                   <div className="flex justify-between items-center bg-neutral-900 border border-neutral-800 border-b-0 border-l-[3px] border-l-emerald-500 px-4 py-2 rounded-t-2xl text-xs backdrop-blur-md animate-in slide-in-from-bottom-2 duration-150">
                     <div className="flex flex-col gap-0.5 truncate pr-4">
-                      <span className="font-bold text-emerald-400">Replying to {replyingTo.user_name}</span>
+                      <span className="font-bold text-emerald-400">{t("Replying to {name}", { name: replyingTo.user_name })}</span>
                       <span className="text-neutral-400 line-clamp-1">{replyingTo.message}</span>
                     </div>
                     <button
@@ -431,7 +427,7 @@ export default function Guestbook() {
                 
                 <div className="relative w-full">
                   <textarea
-                    placeholder="Share your thoughts..."
+                    placeholder={t("Share your thoughts...")}
                     rows={2}
                     maxLength={500}
                     className={`w-full bg-neutral-900 border border-neutral-800 focus:border-emerald-500/50 px-4 py-2.5 text-sm text-neutral-200 placeholder-neutral-500 outline-none resize-none pr-12 focus:ring-1 focus:ring-emerald-500/20 ${
@@ -467,9 +463,7 @@ export default function Guestbook() {
             </form>
           ) : (
             <div className="bg-neutral-900/40 border border-neutral-900 rounded-3xl p-5 text-center flex flex-col items-center gap-3">
-              <p className="text-xs sm:text-sm text-neutral-400">
-                Please sign in to join the conversation. Don&apos;t worry, your data is safe with us.
-              </p>
+              <p className="text-xs sm:text-sm text-neutral-400">{t("Please sign in to join the conversation. Don't worry, your data is safe with us.")}</p>
               <button
                 onClick={signInWithGoogle}
                 className="bg-neutral-800 hover:bg-neutral-750 text-neutral-200 border border-neutral-700 text-xs py-2 px-4 rounded-xl cursor-pointer font-medium hover:border-neutral-600 transition-all flex items-center gap-2 active:scale-95"
@@ -482,7 +476,7 @@ export default function Guestbook() {
                   className="size-4"
                   alt="Google"
                 />
-                <span>Login with Google</span>
+                <span>{t("Login with Google")}</span>
               </button>
             </div>
           )}
