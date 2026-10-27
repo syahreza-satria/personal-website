@@ -1,22 +1,26 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { LanguageProvider } from "@/providers/LanguageProvider";
 import { MotionProvider } from "@/providers/MotionProvider";
 import PageTransitionLoader from "@/components/custom/PageTransitionLoader";
-import Sidebar from "@/components/custom/Sidebar";
-import Topbar from "@/components/custom/Topbar";
+import SiteHeader from "@/components/custom/SiteHeader";
+import CursorFollower from "@/components/custom/CursorFollower";
 import Footer from "@/components/custom/Footer";
 import { Analytics } from "@vercel/analytics/react";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Display face for headings (`font-display`), body face for everything else (`font-sans`).
+// Bricolage is loaded as a variable font (no `weight` list) so the hero can animate its "wght" axis;
+// font-bold / font-extrabold still map to 700 / 800 on that axis.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata = {
@@ -77,23 +81,21 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${bricolage.variable} ${dmSans.variable}`}
       suppressHydrationWarning
     >
       <body
-        className="min-h-screen bg-black text-neutral-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-300"
+        className="min-h-screen bg-paper text-ink font-sans antialiased selection:bg-accent selection:text-ink"
         suppressHydrationWarning
       >
         <MotionProvider>
         <LanguageProvider>
         <AuthProvider>
           <PageTransitionLoader />
-          <Sidebar />
-          <div className="min-h-screen flex flex-col lg:pl-64">
-            <Topbar />
-            <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-              {children}
-            </main>
+          <CursorFollower />
+          <div className="min-h-screen flex flex-col max-w-[1240px] w-full mx-auto px-5">
+            <SiteHeader />
+            <main className="flex-1 w-full">{children}</main>
             <Footer />
           </div>
           <Analytics />

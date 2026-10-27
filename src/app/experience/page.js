@@ -11,7 +11,7 @@ export default function ExperienceRedirect() {
   }, [router]);
 
   return (
-    <div className="py-24 text-center text-neutral-400 text-sm ">
+    <div className="py-24 text-center text-muted text-sm ">
       Redirecting to About & Experience...
     </div>
   );

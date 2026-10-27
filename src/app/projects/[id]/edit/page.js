@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import ProjectForm from "@/components/custom/ProjectForm";
+import ProjectForm, { ProjectFormHeader } from "@/components/custom/ProjectForm";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import Badge from "@/components/custom/Badge";
+import { child } from "@/constants/animation";
 import { useLanguage } from "@/hooks/useLanguage";
 
 export default function EditProject() {
@@ -86,8 +85,8 @@ export default function EditProject() {
     return (
       <div className="py-12 flex justify-center">
         <div className=" flex flex-col items-center gap-3">
-          <div className="h-6 w-32 bg-neutral-800 rounded-md" />
-          <div className="h-4 w-48 bg-neutral-800/60 rounded-md" />
+          <div className="h-6 w-32 bg-surface rounded-full" />
+          <div className="h-4 w-48 bg-surface rounded-full" />
         </div>
       </div>
     );
@@ -99,48 +98,22 @@ export default function EditProject() {
 
   if (error || !project) {
     return (
-      <div className="space-y-6 pt-4 pb-16">
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors duration-200 text-xs font-medium"
-        >
-          <ArrowLeft className="size-4" />
-          <span>{t("Back to Projects")}</span>
+      <div className="flex flex-col items-start gap-6 pt-10 pb-12">
+        <Link href="/projects" className="inline-flex items-center min-h-11 text-[15px] font-semibold hover:underline underline-offset-4">
+          {t("← All work")}
         </Link>
-        <div className="text-center py-12 text-red-400 bg-red-950/20 border border-red-900/30 rounded-2xl">
-          {error ? `${t("Error:")} ${error}` : t("Project not found")}
-        </div>
+        <p className="text-lg">{error ? `${t("Error:")} ${error}` : t("Project not found")}</p>
       </div>
     );
   }
 
   return (
-    <motion.div
-      animate={{ y: 0, opacity: 1 }}
-      initial={{ y: 20, opacity: 0 }}
-      transition={{ type: "spring", stiffness: 100, damping: 20 }}
-      className="space-y-6 pt-4 pb-16"
-    >
-      <div className="flex flex-col gap-3 border-b border-neutral-800 pb-6">
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors duration-200 text-xs font-medium w-fit"
-        >
-          <ArrowLeft className="size-4" />
-          <span>{t("Back to Projects")}</span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <Badge type="dev" label={t("Edit Project")} size="sm" />
-        </div>
-
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Edit Project: {project.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-400">{t("Update project details, features, gallery screenshots, and status.")}</p>
-        </div>
-      </div>
+    <motion.div variants={child} initial="hidden" animate="show" className="flex flex-col gap-10 pb-8">
+      <ProjectFormHeader
+        eyebrow={t("Edit Project")}
+        title={project.title}
+        intro={t("Update project details, features, gallery screenshots, and status.")}
+      />
 
       <ProjectForm
         initialData={project}

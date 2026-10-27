@@ -23,8 +23,8 @@ In today's fast-paced digital landscape, a developer's true capabilities are bes
 
 ## 🚀 Key Features
 
-*   **Black & Green Dashboard UI**: A fixed sidebar (collapses into a floating dock on mobile), a sticky top bar with breadcrumbs, and a card-based home dashboard with live content counts pulled from Supabase.
-*   **Bilingual (English / Bahasa Indonesia)**: One-click language toggle in the sidebar. The choice is remembered, and all interface text is translated from a single dictionary (`src/constants/translations.js`).
+*   **"Project Showcase" design**: A light paper layout with oversized display type (Bricolage Grotesque + DM Sans), pill navigation, ink cards and a single orange accent. On mobile the nav becomes a full-screen menu.
+*   **Bilingual (English / Bahasa Indonesia)**: One-click language toggle in the footer and mobile menu. The choice is remembered, and all interface text is translated from a single dictionary (`src/constants/translations.js`).
 *   **Polished Motion System**: Shared animation tokens, a fade-in page template, a slim top progress bar, sliding active-state indicators, staggered section entrances, and full `prefers-reduced-motion` support.
 *   **Dynamic Project Gallery (Supabase-integrated)**:
     *   **Live Search & Filtering**: Instant client-side search with Developer / Creative / Hybrid filters.
@@ -46,7 +46,7 @@ In today's fast-paced digital landscape, a developer's true capabilities are bes
 
 *   **Framework**: Next.js 16 (App Router), React 19
 *   **Styling**: Tailwind CSS v4, Radix UI, Shadcn UI
-*   **Animations**: Framer Motion (v12), GSAP
+*   **Animations**: Framer Motion (v12)
 *   **i18n**: Lightweight in-house provider (English / Bahasa Indonesia)
 *   **Backend & Database**: Supabase (PostgreSQL, Realtime Channels, Auth)
 *   **Icons & Assets**: Lucide React, React Icons
@@ -141,10 +141,10 @@ npm run start
     │   ├── guestbook/      # Real-time chat & guest posts
     │   └── projects/       # Showcase, detail pages and admin create/edit
     ├── components/         # React Components
-    │   ├── custom/         # Sidebar, Topbar, Footer, forms, GitHub calendar, language toggle
+    │   ├── custom/         # SiteHeader, Footer, PageHeader, forms, dialogs, GitHub calendar, language toggle
     │   └── ui/             # Radix & Shadcn based UI primitives
     ├── constants/          # animation tokens, form field configs, skills, translations
-    ├── hooks/              # useAuth, useLanguage
+    ├── hooks/              # useAuth, useLanguage, useDialog
     ├── lib/                # Shared utilities (supabase connection, class merges)
     └── providers/          # AuthProvider, LanguageProvider, MotionProvider
 ```

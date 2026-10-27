@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Upload, Loader2, Plus, X, ChevronLeft, ChevronRight, Move } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
+import Link from "next/link";
 import { useLanguage } from "@/hooks/useLanguage";
+import { fieldCls, textareaCls, labelCls, uploadBtnCls, primaryBtnCls, secondaryBtnCls } from "./form-styles";
 
 // `type` is the identity used by the projects filter and <Badge>: dev | creative | hybrid.
 const projectTypes = [
@@ -322,98 +324,98 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-neutral-900/40 border border-neutral-800/80 p-6 md:p-8 rounded-[2rem] shadow-xl backdrop-blur-sm">
+    <form onSubmit={handleSubmit} className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Title */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">{t("Project Title")}</label>
-          <input
+          <label htmlFor="pf-field-1" className={labelCls}>{t("Project Title")}</label>
+          <input id="pf-field-1"
             type="text"
             value={formData.title}
             onChange={(e) => handleChange("title", e.target.value)}
             placeholder={t(cfg.titlePlaceholder)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
+            className={`${fieldCls} w-full`}
             required
           />
         </div>
 
         {/* Project Type */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">{t("Project Focus")}</label>
-          <select
+          <label htmlFor="pf-field-2" className={labelCls}>{t("Project Focus")}</label>
+          <select id="pf-field-2"
             value={formData.type}
             onChange={(e) => handleTypeChange(e.target.value)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+            className={`${fieldCls} cursor-pointer`}
             required
           >
             {projectTypes.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-neutral-900">{t(opt.label)}</option>
+              <option key={opt.value} value={opt.value}>{t(opt.label)}</option>
             ))}
           </select>
         </div>
 
         {/* Category */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">{t("Category")}</label>
-          <select
+          <label htmlFor="pf-field-3" className={labelCls}>{t("Category")}</label>
+          <select id="pf-field-3"
             value={formData.category}
             onChange={(e) => handleChange("category", e.target.value)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+            className={`${fieldCls} cursor-pointer`}
             required
           >
             {[...new Set([formData.category, ...cfg.categories])].map((opt) => (
-              <option key={opt} value={opt} className="bg-neutral-900">{t(opt)}</option>
+              <option key={opt} value={opt}>{t(opt)}</option>
             ))}
           </select>
         </div>
 
         {/* Developer Role */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">{t("Your Role")}</label>
-          <input
+          <label htmlFor="pf-field-4" className={labelCls}>{t("Your Role")}</label>
+          <input id="pf-field-4"
             type="text"
             value={formData.role}
             onChange={(e) => handleChange("role", e.target.value)}
             placeholder={t(cfg.rolePlaceholder)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
+            className={`${fieldCls} w-full`}
             required
           />
         </div>
 
         {/* Project Date */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">{t("Completed / Launch Date")}</label>
-          <input
+          <label htmlFor="pf-field-5" className={labelCls}>{t("Completed / Launch Date")}</label>
+          <input id="pf-field-5"
             type="date"
             value={formData.project_date}
             onChange={(e) => handleChange("project_date", e.target.value)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer w-full"
+            className={`${fieldCls} cursor-pointer w-full`}
             required
           />
         </div>
 
         {/* Description */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">{t("Description")}</label>
-          <textarea
+          <label htmlFor="pf-field-6" className={labelCls}>{t("Description")}</label>
+          <textarea id="pf-field-6"
             value={formData.description}
             onChange={(e) => handleChange("description", e.target.value)}
             placeholder={t(cfg.descriptionPlaceholder)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 min-h-[120px] w-full"
+            className={`${textareaCls} min-h-[120px] w-full`}
             required
           />
         </div>
 
         {/* Image upload / URL */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">{t(cfg.imageLabel)}</label>
+          <label htmlFor="pf-field-7" className={labelCls}>{t(cfg.imageLabel)}</label>
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-            <input
+            <input id="pf-field-7"
               type="text"
               value={formData.image}
               onChange={(e) => handleChange("image", e.target.value)}
               placeholder={t("Paste image URL or upload file below")}
-              className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 grow"
+              className={`${fieldCls} grow`}
             />
             
             <div className="relative shrink-0 flex items-center">
@@ -421,16 +423,16 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleFileUpload(e.target.files[0], false)}
-                className="hidden"
+                className="peer sr-only"
                 id="image-file-input"
                 disabled={uploadingImage}
               />
               <label
                 htmlFor="image-file-input"
-                className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-neutral-800 hover:bg-neutral-750 hover:border-neutral-600 text-neutral-200 text-xs px-4 py-3 border border-neutral-700 rounded-xl cursor-pointer transition-all active:scale-95 font-medium shrink-0"
+                className={uploadBtnCls}
               >
                 {uploadingImage ? (
-                  <Loader2 className="size-4 animate-spin text-emerald-500" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <Upload className="size-4" />
                 )}
@@ -439,7 +441,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
             </div>
 
             {formData.image && (
-              <div className="relative size-12 shrink-0 rounded-xl overflow-hidden border border-neutral-750 bg-neutral-950 mx-auto sm:mx-0">
+              <div className="relative size-12 shrink-0 rounded-xl overflow-hidden border border-line bg-surface mx-auto sm:mx-0">
                 <Image src={formData.image} alt="Preview" fill className="object-cover" />
               </div>
             )}
@@ -448,41 +450,41 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
 
         {/* Tech Stack */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">{t(cfg.toolsLabel)}</label>
-          <input
+          <label htmlFor="pf-field-8" className={labelCls}>{t(cfg.toolsLabel)}</label>
+          <input id="pf-field-8"
             type="text"
             value={techstackInput}
             onChange={(e) => handleTechstackChange(e.target.value)}
             placeholder={t(cfg.toolsPlaceholder)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
+            className={`${fieldCls} w-full`}
           />
-          <span className="text-neutral-500 text-[11px]">{t(cfg.toolsHelp)}</span>
+          <span className="text-muted text-[13px]">{t(cfg.toolsHelp)}</span>
         </div>
 
         {/* Features */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">{t(cfg.featuresLabel)}</label>
-          <input
+          <label htmlFor="pf-field-9" className={labelCls}>{t(cfg.featuresLabel)}</label>
+          <input id="pf-field-9"
             type="text"
             value={featuresInput}
             onChange={(e) => handleFeaturesChange(e.target.value)}
             placeholder={t(cfg.featuresPlaceholder)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
+            className={`${fieldCls} w-full`}
           />
-          <span className="text-neutral-500 text-[11px]">{t(cfg.featuresHelp)}</span>
+          <span className="text-muted text-[13px]">{t(cfg.featuresHelp)}</span>
         </div>
 
         {/* Gallery upload / URL */}
         <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-neutral-300 font-medium text-sm">{t(cfg.galleryLabel)}</label>
+          <label htmlFor="pf-field-10" className={labelCls}>{t(cfg.galleryLabel)}</label>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-              <input
+              <input id="pf-field-10"
                 type="text"
                 value={galleryInput}
                 onChange={(e) => handleGalleryInputChange(e.target.value)}
                 placeholder={t("Paste screenshots URLs (comma separated) or upload files below")}
-                className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 grow"
+                className={`${fieldCls} grow`}
               />
               
               <div className="relative shrink-0 flex items-center">
@@ -491,16 +493,16 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                   accept="image/*"
                   multiple
                   onChange={(e) => handleMultipleFileUploads(e.target.files)}
-                  className="hidden"
+                  className="peer sr-only"
                   id="gallery-file-input"
                   disabled={uploadingGallery}
                 />
                 <label
                   htmlFor="gallery-file-input"
-                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-neutral-800 hover:bg-neutral-750 hover:border-neutral-600 text-neutral-200 text-xs px-4 py-3 border border-neutral-700 rounded-xl cursor-pointer transition-all active:scale-95 font-medium shrink-0"
+                  className={uploadBtnCls}
                 >
                   {uploadingGallery ? (
-                    <Loader2 className="size-4 animate-spin text-emerald-500" />
+                    <Loader2 className="size-4 animate-spin" />
                   ) : (
                     <Upload className="size-4" />
                   )}
@@ -511,7 +513,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
 
             {/* Gallery Previews with delete button and reordering */}
             {formData.gallery && formData.gallery.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 p-3 bg-neutral-950/30 border border-neutral-800/50 rounded-2xl">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 p-3 bg-surface rounded-card">
                 {formData.gallery.map((imgUrl, idx) => {
                   const isDragged = draggedIndex === idx;
                   return (
@@ -522,21 +524,21 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                       onDragOver={(e) => handleDragOver(e, idx)}
                       onDragEnd={handleDragEnd}
                       onDrop={(e) => handleDrop(e, idx)}
-                      className={`relative aspect-video rounded-lg overflow-hidden border bg-neutral-950 group transition-all cursor-grab active:cursor-grabbing ${
+                      className={`relative aspect-video rounded-lg overflow-hidden border-[1.5px] bg-paper group transition-all cursor-grab active:cursor-grabbing ${
                         isDragged
-                          ? "border-emerald-500/50 opacity-40 scale-95"
-                          : "border-neutral-750 hover:border-neutral-600"
+                          ? "border-accent opacity-40 scale-95"
+                          : "border-line hover:border-ink"
                       }`}
                     >
                       <Image src={imgUrl} alt={`Screenshot ${idx + 1}`} fill className="object-cover pointer-events-none" />
                       
                       {/* Drag handle icon / helper overlay on hover */}
-                      <div className="absolute inset-0 bg-neutral-950/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
-                        <Move className="size-5 text-neutral-300 drop-shadow " />
+                      <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
+                        <Move className="size-5 text-on-ink drop-shadow" />
                       </div>
 
                       {/* Index badge */}
-                      <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-neutral-900/80 border border-neutral-700/50 text-[10px] font-bold text-neutral-300 pointer-events-none">
+                      <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-ink text-[10px] font-bold text-on-ink pointer-events-none">
                         #{idx + 1}
                       </div>
 
@@ -550,7 +552,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                                 e.stopPropagation();
                                 handleMoveGalleryImage(idx, -1);
                               }}
-                              className="p-1 rounded bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700/50 text-neutral-300 cursor-pointer transition-colors"
+                              className="inline-flex items-center justify-center max-lg:size-11 p-1 rounded-full bg-surface hover:bg-ink hover:text-on-ink text-ink cursor-pointer transition-colors"
                               title={t("Move Left")}
                             >
                               <ChevronLeft className="size-3" />
@@ -563,7 +565,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                                 e.stopPropagation();
                                 handleMoveGalleryImage(idx, 1);
                               }}
-                              className="p-1 rounded bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700/50 text-neutral-300 cursor-pointer transition-colors"
+                              className="inline-flex items-center justify-center max-lg:size-11 p-1 rounded-full bg-surface hover:bg-ink hover:text-on-ink text-ink cursor-pointer transition-colors"
                               title={t("Move Right")}
                             >
                               <ChevronRight className="size-3" />
@@ -577,7 +579,7 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
                             e.stopPropagation();
                             handleRemoveGalleryImage(idx);
                           }}
-                          className="p-1 rounded bg-red-950/80 hover:bg-red-900 border border-red-900/50 text-white cursor-pointer transition-colors"
+                          className="inline-flex items-center justify-center max-lg:size-11 p-1 rounded-full bg-destructive hover:bg-ink text-white cursor-pointer transition-colors"
                           title={t("Remove Image")}
                         >
                           <X className="size-3" />
@@ -594,60 +596,77 @@ export default function ProjectForm({ initialData = null, onSubmit, onCancel, bu
         {/* GitHub URL (code projects only) */}
         {cfg.showGithub && (
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">{t(cfg.githubLabel)} <span className="text-neutral-600 font-normal text-xs">{t("(optional)")}</span></label>
-          <input
+          <label htmlFor="pf-field-11" className={labelCls}>{t(cfg.githubLabel)} <span className="text-muted font-normal text-[13px]">{t("(optional)")}</span></label>
+          <input id="pf-field-11"
             type="url"
             value={formData.github}
             onChange={(e) => handleChange("github", e.target.value)}
             placeholder="https://github.com/..."
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
+            className={`${fieldCls} w-full`}
           />
         </div>
         )}
 
         {/* Live Demo URL */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">{t(cfg.linkLabel)} <span className="text-neutral-600 font-normal text-xs">{t("(optional)")}</span></label>
-          <input
+          <label htmlFor="pf-field-12" className={labelCls}>{t(cfg.linkLabel)} <span className="text-muted font-normal text-[13px]">{t("(optional)")}</span></label>
+          <input id="pf-field-12"
             type="url"
             value={formData.demoLink}
             onChange={(e) => handleChange("demoLink", e.target.value)}
             placeholder={t(cfg.linkPlaceholder)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full"
+            className={`${fieldCls} w-full`}
           />
         </div>
 
         {/* Status Dropdown */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-neutral-300 font-medium text-sm">{t("Project Status")}</label>
-          <select
+          <label htmlFor="pf-field-13" className={labelCls}>{t("Project Status")}</label>
+          <select id="pf-field-13"
             value={formData.status}
             onChange={(e) => handleChange("status", e.target.value)}
-            className="bg-neutral-800/50 border border-neutral-700/60 text-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer w-full"
+            className={`${fieldCls} cursor-pointer w-full`}
             required
           >
             {[...new Set([formData.status, ...cfg.statuses])].map((opt) => (
-              <option key={opt} value={opt} className="bg-neutral-900">{t(opt)}</option>
+              <option key={opt} value={opt}>{t(opt)}</option>
             ))}
           </select>
         </div>
       </div>
 
       {/* Buttons */}
-      <div className="flex justify-end gap-3 pt-6 border-t border-neutral-800">
+      <div className="flex flex-wrap justify-end gap-3 pt-6 border-t-2 border-ink">
         <button
           type="button"
           onClick={onCancel}
-          className="px-5 py-2.5 text-sm text-neutral-400 hover:text-white transition-colors cursor-pointer"
+          className={secondaryBtnCls}
         >{t("Cancel")}</button>
         <button
           type="submit"
           disabled={isSubmitting || uploadingImage || uploadingGallery}
-          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium text-sm px-6 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-600/10 active:scale-95"
+          className={primaryBtnCls}
         >
           {isSubmitting ? t("Saving...") : t(buttonText)}
         </button>
       </div>
     </form>
+  );
+}
+
+// Shared page header for /projects/create and /projects/[id]/edit
+export function ProjectFormHeader({ eyebrow, title, intro }) {
+  const { t } = useLanguage();
+  return (
+    <header className="flex flex-col gap-5 pt-8 sm:pt-10 pb-8 border-b-2 border-ink">
+      <Link href="/projects" className="inline-flex items-center self-start min-h-11 text-[15px] font-semibold hover:underline underline-offset-4">
+        {t("← All work")}
+      </Link>
+      <span className="text-sm font-bold uppercase tracking-[0.08em] text-muted">{eyebrow}</span>
+      <h1 className="font-display font-extrabold text-[clamp(40px,6vw,80px)] leading-[0.92] tracking-[-0.045em] break-words">
+        {title}
+      </h1>
+      {intro && <p className="max-w-[560px] text-lg leading-normal text-muted">{intro}</p>}
+    </header>
   );
 }

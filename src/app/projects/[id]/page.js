@@ -1,407 +1,395 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  Calendar,
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  CheckCircle2,
-  Edit,
-  User,
-  Tag,
-  Clock,
-  Layers,
-  Sparkles,
-} from "lucide-react";
-import { SiGithub } from "react-icons/si";
 import { motion, AnimatePresence } from "framer-motion";
-import Badge from "@/components/custom/Badge";
+import { PiCaretLeftBold, PiCaretRightBold, PiPencilSimpleBold } from "react-icons/pi";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
-import { modalBackdrop } from "@/constants/animation";
+import { modalBackdrop, modalPanel } from "@/constants/animation";
+import Reveal, { RevealItem } from "@/components/custom/Reveal";
+import DrawRule from "@/components/custom/DrawRule";
+import { fallbackProjects, formatProjectDate, getStatusConfig, projectType, toList, typeLabels } from "@/constants/projects";
 
-const getStatusConfig = (status) => {
-  const s = String(status || "").toLowerCase();
+const hasLink = (url) => Boolean(url) && url !== "#";
 
-  if (s === "live" || s === "true") {
-    return {
-      text: "Live",
-      dotClass: "bg-emerald-500 ",
-      badgeClass: "border-emerald-500/25 text-emerald-400 bg-emerald-500/10",
-    };
-  }
-
-  if (s === "in progress" || s === "false" || s === "") {
-    return {
-      text: "In Progress",
-      dotClass: "bg-green-500 ",
-      badgeClass: "border-green-500/25 text-green-400 bg-green-500/10",
-    };
-  }
-
-  if (s === "completed") {
-    return {
-      text: "Completed",
-      dotClass: "bg-lime-400",
-      badgeClass: "border-lime-500/25 text-lime-400 bg-lime-500/10",
-    };
-  }
-
-  if (s === "design phase") {
-    return {
-      text: "Design Phase",
-      dotClass: "bg-lime-400 ",
-      badgeClass: "border-lime-500/25 text-lime-300 bg-lime-500/10",
-    };
-  }
-
-  return {
-    text: status || "Showcase",
-    dotClass: "bg-neutral-500",
-    badgeClass: "border-neutral-700 text-neutral-400 bg-neutral-900/60",
-  };
-};
+const sectionTitle = "font-display font-bold text-[40px] leading-none tracking-[-0.03em]";
 
 export default function ProjectDetailPage() {
   const { t, lang } = useLanguage();
-  const params = useParams();
-  const router = useRouter();
-  const id = params.id;
-  const { user, isAdmin } = useAuth();
+  const { id } = useParams();
+  const { isAdmin } = useAuth();
 
   const [project, setProject] = useState(null);
+  const [nextProject, setNextProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(null);
 
-  const nextImage = (e) => {
-    e.stopPropagation();
-    if (project?.gallery?.length) {
-      setActiveImageIndex((prev) => (prev + 1) % project.gallery.length);
-    }
-  };
-
-  const prevImage = (e) => {
-    e.stopPropagation();
-    if (project?.gallery?.length) {
-      setActiveImageIndex(
-        (prev) => (prev - 1 + project.gallery.length) % project.gallery.length
-      );
-    }
-  };
-
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
 
-    const fetchProjectDetail = async () => {
+    (async () => {
+      let current = null;
+      let ordered = [];
+      let failure = null;
       try {
-        const { data, error } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          setProject({
-            ...data,
-            demo_link: data.demo_link || data.demoLink,
-          });
-        }
+        const [detail, list] = await Promise.all([
+          supabase.from("projects").select("*").eq("id", id).maybeSingle(),
+          supabase.from("projects").select("id, title, project_date").order("project_date", { ascending: false, nullsFirst: false }),
+        ]);
+        if (detail.error) throw detail.error;
+        current = detail.data;
+        ordered = list.data ?? [];
       } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
+        failure = err.message;
       }
-    };
 
-    fetchProjectDetail();
+      // Cards fall back to `fallbackProjects` only when the table is empty or unreachable; resolve those ids too.
+      if (!current && (failure || ordered.length === 0)) {
+        const fallback = fallbackProjects.find((p) => String(p.id) === String(id));
+        if (fallback) {
+          current = fallback;
+          ordered = fallbackProjects;
+          failure = null;
+        }
+      }
+
+      if (cancelled) return;
+      if (current) {
+        setProject({ ...current, demo_link: current.demo_link || current.demoLink });
+        const index = ordered.findIndex((p) => String(p.id) === String(current.id));
+        setNextProject(index >= 0 ? (ordered[index + 1] ?? null) : null);
+      }
+      setError(failure);
+      setIsLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (isLoading) {
     return (
-      <div className="space-y-6 pt-4  pb-12">
-        <div className="h-9 w-32 bg-neutral-800/60 rounded-xl" />
-        <div className="w-full aspect-video bg-neutral-800/60 rounded-2xl" />
-        <div className="h-8 w-2/3 bg-neutral-800/60 rounded-md" />
-        <div className="h-4 w-full bg-neutral-800/40 rounded-md" />
+      <div aria-busy="true" className="flex flex-col gap-7 pt-10 pb-12">
+        <div className="h-6 w-28 rounded-full bg-surface animate-pulse" />
+        <div className="h-24 w-3/4 rounded-card bg-surface animate-pulse" />
+        <div className="aspect-[16/8] rounded-[28px] bg-surface animate-pulse" />
       </div>
     );
   }
 
-  if (error || !project) {
+  if (!project) {
     return (
-      <div className="space-y-6 pt-4 pb-12">
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white px-4 py-2 rounded-xl border border-neutral-800 transition-all text-xs font-medium"
-        >
-          <ArrowLeft className="size-4" />
-          <span>{t("Back to Projects")}</span>
+      <div className="flex flex-col items-start gap-6 pt-10 pb-12">
+        <Link href="/projects" className="inline-flex items-center min-h-11 text-[15px] font-semibold hover:underline underline-offset-4">
+          {t("← All work")}
         </Link>
-        <div className="py-12 text-center text-red-400 bg-red-950/20 border border-red-900/30 rounded-2xl">
-          {error ? `${t("Error:")} ${error}` : t("Project not found")}
-        </div>
+        <h1 className="font-display font-extrabold text-[clamp(40px,6vw,72px)] leading-[0.95] tracking-[-0.04em]">
+          {t("Project not found")}
+        </h1>
+        {error && <p className="text-muted">{`${t("Error:")} ${error}`}</p>}
       </div>
     );
   }
 
-  const statusConfig = getStatusConfig(project.status);
-  const techstackList = Array.isArray(project.techstack)
-    ? project.techstack
-    : typeof project.techstack === "string"
-    ? JSON.parse(project.techstack || "[]")
-    : [];
-  const featuresList = Array.isArray(project.features) ? project.features : [];
-  const galleryList = Array.isArray(project.gallery) ? project.gallery : [];
+  const status = getStatusConfig(project.status);
+  const techstackList = toList(project.techstack);
+  const featuresList = toList(project.features);
+  const galleryList = toList(project.gallery);
+  const date = formatProjectDate(project.project_date, lang);
+  const showDemo = hasLink(project.demo_link);
+  const showGithub = hasLink(project.github);
+
+  const facts = [
+    { label: "Role", value: project.role },
+    { label: "Category", value: project.category && t(project.category) },
+    { label: "Date", value: date },
+  ].filter((f) => f.value);
 
   return (
-    <div className="space-y-8 pt-4 pb-12">
-      {/* Top Bar Navigation & Admin Actions */}
-      <div className="flex items-center justify-between gap-4">
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white px-3.5 py-2 rounded-xl border border-neutral-800 transition-all text-xs font-medium active:scale-95 shadow-sm"
-        >
-          <ArrowLeft className="size-4" />
-          <span>{t("Back to Projects")}</span>
-        </Link>
-
-        {isAdmin && (
-          <Link
-            href={`/projects/${project.id}/edit`}
-            className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3.5 py-2 rounded-xl transition-all shadow-md shadow-emerald-600/10 active:scale-95"
-          >
-            <Edit className="size-3.5" />
-            <span>{t("Edit Project")}</span>
+    <article className="pb-8">
+      {/* Title block */}
+      <Reveal as="section" className="flex flex-col gap-7 pt-8 sm:pt-10 pb-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/projects" className="inline-flex items-center min-h-11 text-[15px] font-semibold hover:underline underline-offset-4">
+            {t("← All work")}
           </Link>
+          {isAdmin && (
+            <Link
+              href={`/projects/${project.id}/edit`}
+              className="inline-flex items-center gap-2 min-h-11 px-5 rounded-full bg-ink text-on-ink text-[15px] font-semibold"
+            >
+              <PiPencilSimpleBold className="size-4" aria-hidden="true" />
+              {t("Edit Project")}
+            </Link>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <span className="px-3 py-1.5 rounded-full border-[1.5px] border-ink text-[13px] font-semibold">
+            {t(typeLabels[projectType(project.type)])}
+          </span>
+          <span className="inline-flex items-center gap-2 px-3 py-[7px] rounded-full bg-surface text-[13px] font-semibold">
+            <span aria-hidden="true" className={`size-2 rounded-full ${status.dot}`} />
+            {t(status.text)}
+          </span>
+        </div>
+
+        <h1 className="max-w-[1100px] font-display font-extrabold text-[clamp(48px,8vw,112px)] leading-[0.9] tracking-[-0.045em] break-words">
+          {project.title}
+        </h1>
+      </Reveal>
+
+      {/* Facts + links */}
+      {(facts.length > 0 || showDemo || showGithub) && (
+        <div>
+          <DrawRule />
+          <Reveal
+            as="dl"
+            className="grid grid-cols-[repeat(auto-fit,minmax(min(160px,100%),1fr))] sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]"
+          >
+            {facts.map((f) => (
+              <div key={f.label} className="flex flex-col gap-1.5 py-5 pr-5">
+                <dt className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">{t(f.label)}</dt>
+                <dd className="text-base font-medium">{f.value}</dd>
+              </div>
+            ))}
+            {(showDemo || showGithub) && (
+              <div className="py-5">
+                <dt className="sr-only">{t("Links")}</dt>
+                <dd className="flex flex-wrap items-center gap-2.5">
+                  {showDemo && (
+                    <a
+                      href={project.demo_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center min-h-12 px-5 rounded-full bg-ink text-on-ink text-[15px] font-semibold"
+                    >
+                      {t("Live demo ↗")}
+                    </a>
+                  )}
+                  {showGithub && (
+                    <a
+                      href={project.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center min-h-12 px-5 rounded-full border-[1.5px] border-ink text-[15px] font-semibold hover:bg-ink hover:text-on-ink transition-colors"
+                    >
+                      GitHub
+                    </a>
+                  )}
+                </dd>
+              </div>
+            )}
+          </Reveal>
+          <DrawRule delay={0.1} />
+        </div>
+      )}
+
+      {/* Cover */}
+      <Reveal className="relative mt-10 mb-18 aspect-[16/8] rounded-[28px] overflow-hidden bg-ink">
+        {project.image ? (
+          <Image src={project.image} alt={project.title} fill priority sizes="(min-width: 1240px) 1200px, 100vw" className="object-cover" />
+        ) : (
+          <span className="absolute inset-0 flex items-center justify-center text-sm text-on-ink-subtle">{t("No image")}</span>
         )}
-      </div>
+      </Reveal>
 
-      {/* Main Project Case Study Box */}
-      <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 overflow-hidden shadow-xl space-y-6">
-        {/* Banner / Hero Image */}
-        <div
-          className="relative w-full aspect-video bg-neutral-950 border-b border-neutral-800/80 overflow-hidden flex items-center justify-center cursor-pointer group"
-          onClick={() => project.image && setActiveImageIndex(0)}
-        >
-          {project.image ? (
-            <Image
-              src={project.image}
-              alt={project.title}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
-              sizes="(max-w-4xl) 100vw"
-              priority
-            />
-          ) : (
-            <div className="p-8 text-center text-neutral-600 flex flex-col items-center gap-2">
-              <ExternalLink className="size-12 stroke-1 text-neutral-700" />
-              <span className="text-xs">{t("No hero image uploaded")}</span>
-            </div>
-          )}
+      {/* Overview + features */}
+      <section className="grid gap-12 grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] pb-20">
+        <div className="flex flex-col gap-5">
+          <Reveal as="h2" className={sectionTitle}>
+            {t("Overview")}
+          </Reveal>
+          <Reveal as="p" delay={0.1} className="text-[17px] sm:text-[19px] leading-[1.65] whitespace-pre-wrap">
+            {project.description}
+          </Reveal>
         </div>
-
-        {/* Content Body */}
-        <div className="p-5 sm:p-8 space-y-6">
-          {/* Header & Badges */}
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                type={project.type || "dev"}
-                label={String(project.type || "dev").toUpperCase()}
-                size="sm"
-              />
-
-              {project.category && (
-                <span className="text-xs px-2.5 py-0.5 rounded-md bg-neutral-800/80 text-neutral-300 border border-neutral-700/50 font-medium">
-                  {project.category}
-                </span>
-              )}
-
-              <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusConfig.badgeClass}`}
-              >
-                <span className={`size-1.5 rounded-full ${statusConfig.dotClass}`} />
-                {t(statusConfig.text)}
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-              {project.title}
-            </h1>
-
-            {/* Metadata Bar (Role, Date, Created At) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-neutral-400">
-              {project.role && (
-                <div className="flex items-center gap-2 bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850">
-                  <User className="size-4 text-emerald-400 shrink-0" />
-                  <div>
-                    <span className="text-[10px] text-neutral-500 uppercase block font-mono">{t("Role")}</span>
-                    <span className="text-neutral-200 font-semibold">{project.role}</span>
-                  </div>
-                </div>
-              )}
-
-              {project.project_date && (
-                <div className="flex items-center gap-2 bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850">
-                  <Calendar className="size-4 text-lime-400 shrink-0" />
-                  <div>
-                    <span className="text-[10px] text-neutral-500 uppercase block font-mono">{t("Release Date")}</span>
-                    <span className="text-neutral-200 font-semibold">
-                      {new Date(project.project_date).toLocaleDateString(lang === "id" ? "id-ID" : "en-US", {
-                        month: "long",
-                        year: "numeric",
-                      })}
+        {featuresList.length > 0 && (
+          <div className="flex flex-col gap-5">
+            <Reveal as="h2" className={sectionTitle}>
+              {t("Key features")}
+            </Reveal>
+            <div>
+              <DrawRule weight="1.5" />
+              <Reveal as="ol" stagger className="flex flex-col">
+                {featuresList.map((feature, i) => (
+                  <RevealItem
+                    as="li"
+                    key={i}
+                    className="grid grid-cols-[44px_minmax(0,1fr)] gap-3 py-4 border-b border-line text-base leading-normal"
+                  >
+                    <span aria-hidden="true" className="font-display font-bold text-muted">
+                      {String(i + 1).padStart(2, "0")}
                     </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="h-px w-full bg-neutral-800/80" />
-
-          {/* Description */}
-          <div className="space-y-2">
-            <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-400">{t("About the Project")}</h2>
-            <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
-              {project.description}
-            </p>
-          </div>
-
-          {/* Key Features */}
-          {featuresList.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-400">{t("Key Features & Technical Achievements")}</h2>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-neutral-300">
-                {featuresList.map((feature, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-start gap-2 p-2.5 rounded-xl bg-neutral-950/40 border border-neutral-850"
-                  >
-                    <CheckCircle2 className="size-4 text-emerald-400 shrink-0 mt-0.5" />
                     <span>{feature}</span>
-                  </li>
+                  </RevealItem>
                 ))}
-              </ul>
+              </Reveal>
             </div>
-          )}
-
-          {/* Tech Stack */}
-          {techstackList.length > 0 && (
-            <div className="space-y-2 pt-2">
-              <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-400">{t("Technologies Used")}</h2>
-              <div className="flex flex-wrap gap-1.5">
-                {techstackList.map((tech, idx) => (
-                  <span
-                    key={idx}
-                    className="text-xs px-3 py-1 rounded-lg bg-neutral-950 text-neutral-200 border border-neutral-800 font-mono"
-                  >
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Image Gallery Screenshots */}
-          {galleryList.length > 0 && (
-            <div className="space-y-3 pt-4">
-              <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-400">
-                Project Screenshots & Visual Gallery ({galleryList.length})
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {galleryList.map((imgUrl, index) => (
-                  <div
-                    key={index}
-                    onClick={() => setActiveImageIndex(index)}
-                    className="relative aspect-video rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950 hover:border-emerald-500/40 transition-all duration-300 group cursor-pointer"
-                  >
-                    <Image
-                      src={imgUrl}
-                      alt={`${project.title} Screenshot ${index + 1}`}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Action Links Bar */}
-          <div className="pt-6 border-t border-neutral-800/80 flex flex-wrap items-center gap-3">
-            {project.demo_link && project.demo_link !== "#" && (
-              <a
-                href={project.demo_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold text-xs py-3 px-5 rounded-xl transition-all duration-300 hover:-translate-y-0.5 shadow-md shadow-emerald-500/10"
-              >
-                <span>{t("Visit Live Project")}</span>
-                <ArrowUpRight className="size-4" />
-              </a>
-            )}
-
-            {project.github && project.github !== "#" && (
-              <a
-                href={project.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 bg-neutral-800 border border-neutral-700 hover:border-neutral-600 text-neutral-200 text-xs py-3 px-5 rounded-xl transition-all duration-300 hover:-translate-y-0.5"
-              >
-                <SiGithub className="size-4" />
-                <span>{t("Explore Source Code")}</span>
-              </a>
-            )}
           </div>
-        </div>
-      </div>
+        )}
+      </section>
 
-      {/* Interactive Gallery Lightbox */}
+      {/* Tech stack */}
+      {techstackList.length > 0 && (
+        <section className="flex flex-col gap-5 pb-20">
+          <Reveal as="h2" className={sectionTitle}>
+            {t("Built with")}
+          </Reveal>
+          <Reveal as="ul" delay={0.1} className="flex flex-wrap gap-2.5">
+            {techstackList.map((tech, i) => (
+              <li key={i} className="px-4 py-2.5 rounded-full border-[1.5px] border-ink text-[15px] font-medium">
+                {tech}
+              </li>
+            ))}
+          </Reveal>
+        </section>
+      )}
+
+      {/* Gallery */}
+      {galleryList.length > 0 && (
+        <section className="flex flex-col gap-5 pb-24">
+          <Reveal as="h2" className={sectionTitle}>
+            {t("Gallery")}
+          </Reveal>
+          <Reveal delay={0.1} className="grid gap-5 grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]">
+            {galleryList.map((imgUrl, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setActiveImageIndex(index)}
+                aria-label={t("Open screenshot {n}", { n: index + 1 })}
+                className="group relative aspect-[4/3] rounded-card overflow-hidden bg-surface cursor-zoom-in"
+              >
+                <Image
+                  src={imgUrl}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1240px) 400px, (min-width: 640px) 50vw, 100vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </button>
+            ))}
+          </Reveal>
+        </section>
+      )}
+
+      {/* Next project */}
+      {nextProject && (
+        <Reveal>
+          <Link
+            href={`/projects/${nextProject.id}`}
+            data-cursor="view"
+            className="group flex flex-wrap items-center justify-between gap-5 rounded-[28px] bg-accent text-ink p-8 sm:p-10"
+          >
+            <span className="flex flex-col gap-2 min-w-0">
+              <span className="text-sm font-semibold uppercase tracking-[0.08em]">{t("Next project")}</span>
+              <span className="font-display font-extrabold text-[clamp(32px,5vw,64px)] leading-[0.95] tracking-[-0.04em] group-hover:underline underline-offset-[6px] decoration-[3px]">
+                {nextProject.title}
+              </span>
+            </span>
+            <span
+              aria-hidden="true"
+              className="font-display font-extrabold text-[64px] leading-none transition-transform duration-200 group-hover:translate-x-1"
+            >
+              →
+            </span>
+          </Link>
+        </Reveal>
+      )}
+
       <AnimatePresence>
         {activeImageIndex !== null && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              {...modalBackdrop}
-            onClick={() => setActiveImageIndex(null)}
-              className="absolute inset-0 bg-neutral-950/90 backdrop-blur-md cursor-zoom-out"
-            />
-
-            <div className="relative max-w-4xl w-full flex items-center justify-center z-10">
-              <button
-                onClick={() => setActiveImageIndex(null)}
-                className="absolute -top-12 right-0 p-2 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white"
-              >
-                <X className="size-5" />
-              </button>
-
-              <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-950">
-                <Image
-                  src={
-                    galleryList[activeImageIndex] ||
-                    project.image ||
-                    "/images/brand-logo.png"
-                  }
-                  alt={t("Gallery Preview")}
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            </div>
-          </div>
+          <GalleryLightbox images={galleryList} index={activeImageIndex} title={project.title} onChange={setActiveImageIndex} />
         )}
       </AnimatePresence>
+    </article>
+  );
+}
+
+// `onChange` is the state setter: an index pages, `null` closes. Keeping it the only callback keeps the effect below stable.
+function GalleryLightbox({ images, index, title, onChange }) {
+  const { t } = useLanguage();
+  const closeRef = useRef(null);
+  const count = images.length;
+  const go = (step) => onChange((index + step + count) % count);
+  const close = () => onChange(null);
+
+  // Esc closes, arrow keys page through; lock page scroll while open.
+  useEffect(() => {
+    const previous = document.activeElement;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onChange(null);
+      else if (e.key === "ArrowRight" && count > 1) onChange((i) => (i + 1) % count);
+      else if (e.key === "ArrowLeft" && count > 1) onChange((i) => (i - 1 + count) % count);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+      previous?.focus?.();
+    };
+  }, [count, onChange]);
+
+  const navBtn =
+    "inline-flex items-center justify-center size-12 rounded-full bg-surface text-ink hover:bg-accent transition-colors cursor-pointer";
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("Gallery Preview")}
+      data-surface="ink"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
+    >
+      <motion.div {...modalBackdrop} onClick={close} className="absolute inset-0 bg-ink/95 cursor-zoom-out" />
+
+      <motion.div {...modalPanel} className="relative z-10 w-full max-w-5xl flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-4 text-on-ink">
+          <span className="text-sm text-on-ink-muted">
+            {index + 1} / {count}
+          </span>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={close}
+            className="min-h-11 px-5 rounded-full bg-accent text-ink text-[15px] font-semibold cursor-pointer"
+          >
+            {t("Close")}
+          </button>
+        </div>
+
+        <div className="relative w-full aspect-video rounded-card overflow-hidden bg-ink">
+          <Image
+            src={images[index]}
+            alt={`${title} — ${index + 1}`}
+            fill
+            sizes="(min-width: 1024px) 1024px, 100vw"
+            className="object-contain"
+          />
+        </div>
+
+        {count > 1 && (
+          <div className="flex items-center justify-center gap-3">
+            <button type="button" onClick={() => go(-1)} aria-label={t("Previous image")} className={navBtn}>
+              <PiCaretLeftBold className="size-5" aria-hidden="true" />
+            </button>
+            <button type="button" onClick={() => go(1)} aria-label={t("Next image")} className={navBtn}>
+              <PiCaretRightBold className="size-5" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

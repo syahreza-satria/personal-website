@@ -3,54 +3,45 @@
 import React from "react";
 import { PiCodeBold, PiPaintBrushBold, PiSparkleBold } from "react-icons/pi";
 
+const icons = {
+  dev: <PiCodeBold className="shrink-0" aria-hidden="true" />,
+  creative: <PiPaintBrushBold className="shrink-0" aria-hidden="true" />,
+  hybrid: <PiSparkleBold className="shrink-0" aria-hidden="true" />,
+};
+
+const typeOf = (type) => {
+  const v = String(type || "dev").toLowerCase();
+  if (v === "dev" || v === "developer") return "dev";
+  if (v === "creative" || v === "design") return "creative";
+  if (v === "hybrid" || v === "cross") return "hybrid";
+  return null;
+};
+
+const sizes = {
+  sm: "text-xs px-2.5 py-1 gap-1",
+  md: "text-[13px] px-3 py-1.5 gap-1.5",
+  lg: "text-sm px-3.5 py-2 gap-2",
+};
+
 /**
- * Visual Badge Component for Dual Identity Focus
- * @param {'dev' | 'creative' | 'hybrid'} type
+ * Outline pill tag. Dev / Creative / Hybrid share one style (1.5px ink outline); any other
+ * value falls back to a quieter line-coloured outline.
+ * @param {'dev' | 'creative' | 'hybrid' | string} type
  * @param {string} label
- * @param {string} className
  * @param {boolean} showIcon
  * @param {'sm' | 'md' | 'lg'} size
+ * @param {'paper' | 'ink'} tone  use "ink" on dark surfaces
  */
-export default function Badge({
-  type = "dev",
-  label,
-  className = "",
-  showIcon = true,
-  size = "md",
-}) {
-  const normalizedType = (type || "dev").toLowerCase();
-
-  let styles = "";
-  let defaultIcon = null;
-
-  if (normalizedType === "dev" || normalizedType === "developer") {
-    styles =
-      "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/20";
-    defaultIcon = <PiCodeBold className="shrink-0" />;
-  } else if (normalizedType === "creative" || normalizedType === "design") {
-    styles =
-      "bg-lime-500/10 text-lime-300 border-lime-500/20 hover:border-lime-500/40 hover:bg-lime-500/20";
-    defaultIcon = <PiPaintBrushBold className="shrink-0" />;
-  } else if (normalizedType === "hybrid" || normalizedType === "cross") {
-    styles =
-      "bg-gradient-to-r from-emerald-500/10 via-lime-500/10 to-lime-500/10 text-emerald-300 border-emerald-500/30 hover:border-lime-500/40 shadow-sm";
-    defaultIcon = <PiSparkleBold className="shrink-0 text-lime-300" />;
-  } else {
-    // Neutral fallback
-    styles = "bg-neutral-800/60 text-neutral-300 border-neutral-700 hover:border-neutral-600";
-  }
-
-  const sizeStyles = {
-    sm: "text-[11px] px-2 py-0.5 gap-1 rounded-md font-medium border",
-    md: "text-xs px-2.5 py-1 gap-1.5 rounded-lg font-medium border",
-    lg: "text-sm px-3 py-1.5 gap-2 rounded-xl font-semibold border",
-  }[size] || "text-xs px-2.5 py-1 gap-1.5 rounded-lg font-medium border";
+export default function Badge({ type = "dev", label, className = "", showIcon = false, size = "md", tone = "paper" }) {
+  const kind = typeOf(type);
+  const colour =
+    tone === "ink" ? "border-on-ink text-on-ink" : kind ? "border-ink text-ink" : "border-line text-muted";
 
   return (
     <span
-      className={`inline-flex items-center transition-all duration-200 whitespace-nowrap ${sizeStyles} ${styles} ${className}`}
+      className={`inline-flex items-center rounded-full border-[1.5px] font-semibold whitespace-nowrap ${sizes[size] || sizes.md} ${colour} ${className}`}
     >
-      {showIcon && defaultIcon}
+      {showIcon && kind && icons[kind]}
       <span>{label}</span>
     </span>
   );

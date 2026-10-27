@@ -4,6 +4,7 @@ import { createContext, useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/hooks/useLanguage";
+import { modalPanel } from "@/constants/animation";
 
 export const AuthContext = createContext({});
 
@@ -99,34 +100,36 @@ export const AuthProvider = ({ children }) => {
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="fixed top-6 right-6 z-[9999] flex items-center gap-3 bg-neutral-900/90 border border-neutral-800 backdrop-blur-xl px-4 py-3 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] max-w-sm"
+            {...modalPanel}
+            role="status"
+            aria-live="polite"
+            data-surface="ink"
+            className="fixed top-5 right-5 left-5 sm:left-auto z-[9999] flex items-center gap-3 bg-ink text-on-ink pl-4 pr-1.5 py-1.5 rounded-[20px] sm:max-w-sm"
           >
             {toast.type === "success" ? (
-              <div className="size-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <svg className="size-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <div className="size-7 rounded-full bg-accent text-ink flex items-center justify-center shrink-0">
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
             ) : (
-              <div className="size-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <svg className="size-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <div className="size-7 rounded-full bg-accent text-ink flex items-center justify-center shrink-0">
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             )}
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+            <div className="flex flex-col py-1.5 min-w-0">
+              <span className="text-[11px] font-semibold text-on-ink-subtle uppercase tracking-[0.08em]">
                 {toast.type === "success" ? t("Success") : t("Notification")}
               </span>
-              <p className="text-sm font-medium text-neutral-200 mt-0.5">{toast.message}</p>
+              <p className="text-sm font-medium text-on-ink mt-0.5">{toast.message}</p>
             </div>
             <button
+              type="button"
               onClick={() => setToast(null)}
-              className="text-neutral-500 hover:text-neutral-300 ml-2 cursor-pointer shrink-0"
+              aria-label={t("Close")}
+              className="ml-auto size-11 inline-flex items-center justify-center rounded-full text-on-ink-subtle hover:text-on-ink hover:bg-ink-line cursor-pointer shrink-0"
             >
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

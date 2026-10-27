@@ -1,22 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import SpotlightCard from "../SpotlightCard";
-
 import { GitHubCalendar } from "react-github-calendar";
+import { useLanguage } from "@/hooks/useLanguage";
 
-// Only the most recent months are shown, so the latest activity is always visible.
-const RECENT_MONTHS = 6;
+const WEEKS = 53; // one year of columns
+const BLOCK_MARGIN = 4;
+const MIN_BLOCK = 11; // below this the grid scrolls sideways instead of shrinking further
+const MAX_BLOCK = 18;
 
-const keepRecent = (contributions) => {
-  const cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - RECENT_MONTHS);
-  return contributions.filter((day) => new Date(day.date) >= cutoff);
-};
+const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
+// Paper (no activity) → light accent → accent → ink for the busiest days
+const theme = { light: ["#efefec", "#ffc9b4", "#ff9466", "#ff5a1f", "#111111"] };
+
+// Last 12 months of contributions. Block size follows the card width so the grid fills it on
+// desktop; on narrow screens it keeps a readable minimum and scrolls, starting at today.
 const GithubCalendar = ({ username = "syahreza-satria" }) => {
+  const { t, lang } = useLanguage();
   const [mounted, setMounted] = useState(false);
+  const [blockSize, setBlockSize] = useState(MIN_BLOCK);
   const scrollRef = useRef(null);
+  const gridRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -28,49 +33,59 @@ const GithubCalendar = ({ username = "syahreza-satria" }) => {
     };
   }, []);
 
-  // On narrow screens the graph can overflow; start at the right edge (today).
+  // Fit the blocks to the available width
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || !mounted) return;
-    const t = setTimeout(() => {
-      el.scrollLeft = el.scrollWidth;
-    }, 300);
-    return () => clearTimeout(t);
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const fit = Math.floor(entry.contentRect.width / WEEKS) - BLOCK_MARGIN;
+      setBlockSize(Math.max(MIN_BLOCK, Math.min(MAX_BLOCK, fit)));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // When the grid overflows, keep it scrolled to the right edge (today). The data arrives after a
+  // fetch, so react to the grid's size changing rather than to a timer.
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const grid = gridRef.current;
+    if (!scroller || !grid) return;
+    const observer = new ResizeObserver(() => {
+      scroller.scrollLeft = scroller.scrollWidth;
+    });
+    observer.observe(grid);
+    return () => observer.disconnect();
   }, [mounted]);
 
-  const customTheme = {
-    light: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
-    dark: ["#27272a", "#064e3b", "#047857", "#10b981", "#34d399"],
+  const labels = {
+    totalCount: t("{{count}} contributions in the last year"),
+    legend: { less: t("Less"), more: t("More") },
+    ...(lang === "id" && { months: MONTHS_ID }),
   };
 
   return (
-    <SpotlightCard
-      className="custom-spotlight-card w-full relative group"
-      spotlightColor="rgba(16, 185, 129, 0.2)"
-    >
-      <div ref={scrollRef} className="overflow-x-auto w-full scrollbar-hide py-2">
-        <div className="w-fit mx-auto">
-          {mounted ? (
+    <div className="w-full rounded-panel bg-surface p-5 sm:p-8">
+      <div ref={scrollRef} className="overflow-x-auto w-full scrollbar-hide">
+        {mounted ? (
+          <div ref={gridRef} className="w-fit">
             <GitHubCalendar
               username={username}
-              theme={customTheme}
-              colorScheme="dark"
-              transformData={keepRecent}
-              style={{
-                color: "#e5e5e5",
-              }}
-              labels={{
-                totalCount: "{{count}} contributions in the last 6 months",
-              }}
+              theme={theme}
+              colorScheme="light"
+              blockSize={blockSize}
+              blockMargin={BLOCK_MARGIN}
+              blockRadius={3}
+              fontSize={14}
+              labels={labels}
+              style={{ color: "#4a4a46" }}
             />
-          ) : (
-            <div className="h-[150px] w-full flex items-center justify-center text-neutral-500  text-sm">
-              Loading GitHub contributions...
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="h-[170px] w-full flex items-center justify-center text-muted text-sm">{t("Loading GitHub contributions...")}</div>
+        )}
       </div>
-    </SpotlightCard>
+    </div>
   );
 };
 

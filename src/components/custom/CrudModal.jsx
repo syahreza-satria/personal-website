@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { X, Upload, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Upload, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import { useLanguage } from "@/hooks/useLanguage";
 import { modalBackdrop, modalPanel } from "@/constants/animation";
+import { fieldCls, textareaCls, labelCls, helpCls, uploadBtnCls, primaryBtnCls, secondaryBtnCls } from "./form-styles";
 
 /**
  * Field definition (see src/constants/forms.js for real examples):
@@ -22,8 +23,6 @@ import { modalBackdrop, modalPanel } from "@/constants/animation";
  *  type "section"         - non-input heading that groups the fields below it
  */
 
-const inputCls =
-  "bg-neutral-800 border border-neutral-700/60 text-neutral-200 placeholder:text-neutral-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-full";
 
 const normalizeOption = (opt) => (typeof opt === "string" ? { value: opt, label: opt } : opt);
 
@@ -49,6 +48,26 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const uid = useId();
+  const idFor = (name) => `${uid}-${name}`;
+  const panelRef = useRef(null);
+  // Pages pass `onClose` inline; read it through a ref so the effect below runs once per open.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Esc closes; focus moves into the dialog when it opens and back to the trigger when it closes.
+  useEffect(() => {
+    const previous = document.activeElement;
+    panelRef.current?.querySelector("input, select, textarea, button")?.focus();
+    const onKeyDown = (e) => e.key === "Escape" && onCloseRef.current();
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previous?.focus?.();
+    };
+  }, []);
   const [uploadingField, setUploadingField] = useState(null);
 
   // Raw text for array/list fields so separators and blank lines can be typed freely.
@@ -117,7 +136,7 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
 
   const renderControl = (field) => {
     const value = formData[field.name];
-    const common = { required: field.required, placeholder: field.placeholder ? t(field.placeholder) : undefined };
+    const common = { id: idFor(field.name), required: field.required, placeholder: field.placeholder ? t(field.placeholder) : undefined };
 
     switch (field.type) {
       case "textarea":
@@ -126,7 +145,7 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
             {...common}
             value={value || ""}
             onChange={(e) => handleChange(field.name, e.target.value)}
-            className={`${inputCls} min-h-[96px]`}
+            className={`${textareaCls} min-h-[96px]`}
           />
         );
       case "list":
@@ -135,7 +154,7 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
             {...common}
             value={rawInputs[field.name] ?? ""}
             onChange={(e) => handleListChange(field, e.target.value)}
-            className={`${inputCls} min-h-[120px]`}
+            className={`${textareaCls} min-h-[120px]`}
           />
         );
       case "array":
@@ -145,16 +164,17 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
             {...common}
             value={rawInputs[field.name] ?? ""}
             onChange={(e) => handleListChange(field, e.target.value)}
-            className={inputCls}
+            className={fieldCls}
           />
         );
       case "select":
         return (
           <select
+            id={idFor(field.name)}
             required={field.required}
             value={value || ""}
             onChange={(e) => handleChange(field.name, e.target.value)}
-            className={`${inputCls} cursor-pointer`}
+            className={`${fieldCls} cursor-pointer`}
           >
             <option value="" disabled>{field.placeholder || `Select ${t(field.label)}`}</option>
             {field.options.map(normalizeOption).map((opt) => (
@@ -165,48 +185,48 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
       case "checkbox":
       case "switch":
         return (
-          <label className="flex items-center gap-2 mt-1 cursor-pointer">
+          <label className="flex items-center gap-3 min-h-11 cursor-pointer">
             <input
               type="checkbox"
               checked={!!value}
               onChange={(e) => handleChange(field.name, e.target.checked)}
-              className="size-4.5 rounded border-neutral-700 bg-neutral-800 accent-emerald-500 cursor-pointer"
+              className="size-5 accent-ink cursor-pointer"
             />
-            <span className="text-neutral-400 text-sm">{t(field.description)}</span>
+            <span className="text-[15px]">{t(field.description || field.label)}</span>
           </label>
         );
       case "image":
         return (
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
             <input
               type="text"
               {...common}
               placeholder={t(field.placeholder || "Paste image URL or upload a file")}
               value={value || ""}
               onChange={(e) => handleChange(field.name, e.target.value)}
-              className={`${inputCls} grow`}
+              className={`${fieldCls} grow`}
             />
             <input
               type="file"
               accept="image/*"
               onChange={(e) => handleFileUpload(field.name, e.target.files[0])}
-              className="hidden"
+              className="peer sr-only"
               id={`file-${field.name}`}
               disabled={uploadingField === field.name}
             />
             <label
               htmlFor={`file-${field.name}`}
-              className="flex items-center justify-center gap-1.5 bg-neutral-800 border border-neutral-700 hover:border-emerald-500/40 text-neutral-200 text-xs px-3.5 py-2.5 rounded-xl cursor-pointer transition-all shrink-0 active:scale-95 font-medium"
+              className={uploadBtnCls}
             >
               {uploadingField === field.name ? (
-                <Loader2 className="size-3.5 animate-spin text-emerald-500" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Upload className="size-3.5" />
+                <Upload className="size-4" />
               )}
               <span>{uploadingField === field.name ? t("Uploading...") : t("Upload")}</span>
             </label>
             {value && (
-              <div className="relative size-9.5 shrink-0 rounded-lg overflow-hidden border border-neutral-700 bg-black">
+              <div className="relative size-12 shrink-0 rounded-xl overflow-hidden border border-line bg-surface">
                 <Image src={value} alt="Preview" fill className="object-cover" />
               </div>
             )}
@@ -216,10 +236,11 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
         return (
           <input
             type="date"
+            id={idFor(field.name)}
             required={field.required}
             value={toDateInput(value)}
             onChange={(e) => handleChange(field.name, e.target.value)}
-            className={`${inputCls} cursor-pointer`}
+            className={`${fieldCls} cursor-pointer`}
           />
         );
       default:
@@ -232,31 +253,32 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
             max={field.max}
             value={value ?? ""}
             onChange={(e) => handleChange(field.name, e.target.value)}
-            className={inputCls}
+            className={fieldCls}
           />
         );
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby={`${uid}-title`} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <motion.div
         {...modalBackdrop}
-            onClick={onClose}
-        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        onClick={onClose}
+        className="absolute inset-0 bg-ink/60"
       />
 
       <motion.div
         {...modalPanel}
-            className="relative bg-neutral-900 border border-neutral-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[88vh]"
+        ref={panelRef}
+        className="relative bg-paper rounded-panel w-full max-w-2xl overflow-hidden z-10 flex flex-col max-h-[88vh]"
       >
-        <div className="flex justify-between items-start gap-4 px-6 py-4 border-b border-neutral-800 shrink-0">
+        <div className="flex justify-between items-start gap-4 px-6 pt-6 pb-4 border-b-2 border-ink shrink-0">
           <div>
-            <h2 className="text-white font-semibold text-lg">{t(title)}</h2>
-            {subtitle && <p className="text-neutral-500 text-xs mt-0.5">{t(subtitle)}</p>}
+            <h2 id={`${uid}-title`} className="font-display font-bold text-[28px] leading-tight tracking-[-0.02em]">{t(title)}</h2>
+            {subtitle && <p className="text-muted text-sm mt-1">{t(subtitle)}</p>}
           </div>
-          <button onClick={onClose} className="text-neutral-400 hover:text-white transition-colors cursor-pointer" aria-label={t("Close")}>
-            <X className="size-5" />
+          <button type="button" onClick={onClose} className="min-h-11 px-5 rounded-full bg-ink text-on-ink text-[15px] font-semibold cursor-pointer shrink-0">
+            {t("Close")}
           </button>
         </div>
 
@@ -267,8 +289,8 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
 
               if (field.type === "section") {
                 return (
-                  <div key={field.name || field.label} className="sm:col-span-2 pt-2 first:pt-0 border-t border-neutral-800 first:border-t-0">
-                    <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-500 mt-3 first:mt-0">{t(field.label)}</p>
+                  <div key={field.name || field.label} className="sm:col-span-2 pt-4 first:pt-0 border-t-[1.5px] border-ink first:border-t-0">
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-muted">{t(field.label)}</p>
                   </div>
                 );
               }
@@ -276,28 +298,28 @@ function CrudForm({ onClose, title, subtitle, onSubmit, initialData, fields, sub
               return (
                 <div key={field.name} className={`flex flex-col gap-1.5 ${field.half ? "" : "sm:col-span-2"}`}>
                   {field.type !== "checkbox" && field.type !== "switch" && (
-                    <label className="text-neutral-300 font-medium text-sm">
+                    <label htmlFor={idFor(field.name)} className={labelCls}>
                       {t(field.label)}
-                      {field.required ? <span className="text-emerald-500"> *</span> : <span className="text-neutral-600 font-normal text-xs">{t("(optional)")}</span>}
+                      {field.required ? <span aria-hidden="true"> *</span> : <span className="text-muted font-normal text-[13px]"> {t("(optional)")}</span>}
                     </label>
                   )}
                   {renderControl(field)}
-                  {field.help && <span className="text-neutral-500 text-[11px]">{t(field.help)}</span>}
+                  {field.help && <span className={helpCls}>{t(field.help)}</span>}
                 </div>
               );
             })}
           </div>
 
-          <div className="flex justify-end gap-3 pt-5 mt-5 border-t border-neutral-800 shrink-0">
+          <div className="flex flex-wrap justify-end gap-3 pt-5 mt-6 border-t-2 border-ink shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className={secondaryBtnCls}
             >{t("Cancel")}</button>
             <button
               type="submit"
               disabled={isSubmitting || !!uploadingField}
-              className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold text-sm px-5 py-2 rounded-xl transition-all cursor-pointer active:scale-95"
+              className={primaryBtnCls}
             >
               {isSubmitting ? t("Saving...") : t(submitLabel)}
             </button>

@@ -1,42 +1,53 @@
 "use client";
 
 import React from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
-import {
-  PiGithubLogoBold,
-  PiLinkedinLogoBold,
-  PiInstagramLogoBold,
-  PiYoutubeLogoBold,
-} from "react-icons/pi";
+import LanguageToggle from "./LanguageToggle";
+import DrawRule from "./DrawRule";
+import { RESUME_URL, socialLinks } from "./nav-items";
 
-const socialLinks = [
-  { name: "GitHub", url: "https://github.com/syahreza-satria", Icon: PiGithubLogoBold },
-  { name: "LinkedIn", url: "https://linkedin.com/in/syahreza-satria", Icon: PiLinkedinLogoBold },
-  { name: "YouTube", url: "https://youtube.com/@syahrezasatria", Icon: PiYoutubeLogoBold },
-  { name: "Instagram", url: "https://instagram.com/syahreza.satria", Icon: PiInstagramLogoBold },
-];
+const linkCls = "inline-flex items-center min-h-11 hover:underline underline-offset-4";
 
 export default function Footer() {
+  const { user, loading, isAdmin, signInWithGoogle, signOut } = useAuth();
   const { t } = useLanguage();
-  const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full border-t border-neutral-900 bg-black mt-12 px-4 sm:px-6 lg:px-8 py-5 pb-24 lg:pb-5">
-      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
-        <p>© {currentYear} Syahreza Satria. {t("All rights reserved.")} · Bandung, Indonesia</p>
-        <div className="flex items-center gap-1">
-          {socialLinks.map(({ name, url, Icon }) => (
-            <a
-              key={name}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={name}
-              className="p-2 rounded-lg text-neutral-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-            >
-              <Icon className="size-4" />
+    <footer className="mt-24 pb-12 text-[15px] font-medium">
+      <DrawRule />
+      <div className="pt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <nav aria-label={t("Social")} className="flex flex-wrap gap-x-5">
+          {socialLinks.map(({ name, url }) => (
+            <a key={name} href={url} target="_blank" rel="noopener noreferrer" className={linkCls}>
+              {name}
             </a>
           ))}
+          <a href={RESUME_URL} target="_blank" rel="noopener noreferrer" className={linkCls}>
+            {t("CV ↗")}
+          </a>
+        </nav>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span className="text-muted">Bandung, Indonesia</span>
+          <LanguageToggle />
+          {/* Login lives here now that the dashboard top bar is gone; it also serves guestbook visitors */}
+          {!loading &&
+            (user ? (
+              <span className="inline-flex items-center gap-3 text-sm text-muted">
+                <span className="max-w-48 truncate">
+                  {user.user_metadata?.full_name || user.email}
+                  {isAdmin && ` · ${t("Admin")}`}
+                </span>
+                <button type="button" onClick={signOut} className={`${linkCls} text-ink cursor-pointer`}>
+                  {t("Logout")}
+                </button>
+              </span>
+            ) : (
+              <button type="button" onClick={signInWithGoogle} className={`${linkCls} text-sm text-muted hover:text-ink cursor-pointer`}>
+                {t("Login")}
+              </button>
+            ))}
         </div>
       </div>
     </footer>

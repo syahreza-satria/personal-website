@@ -79,11 +79,11 @@ const PageTransitionLoader = () => {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-x-0 top-0 z-9999 h-0.5"
+      className="pointer-events-none fixed inset-x-0 top-0 z-9999 h-[3px]"
       style={{ opacity: visible ? 1 : 0, transition: "opacity 300ms ease" }}
     >
       <div
-        className="h-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]"
+        className="h-full bg-accent"
         style={{
           width: `${progress}%`,
           transition: progress === 0 ? "none" : "width 250ms cubic-bezier(0.22, 1, 0.36, 1)",

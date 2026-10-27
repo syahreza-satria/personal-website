@@ -1,23 +1,26 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import Image from "next/image";
-import { ArrowUpRight, Plus, Edit, Trash2, X, Calendar, Award, ExternalLink, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import CrudModal from "@/components/custom/CrudModal";
 import { achievementFields } from "@/constants/forms";
-import Badge from "@/components/custom/Badge";
 import { useLanguage } from "@/hooks/useLanguage";
-import { modalBackdrop, modalPanel, listItem } from "@/constants/animation";
+import PageHeader from "@/components/custom/PageHeader";
+import FilterPills from "@/components/custom/FilterPills";
+import PreviewDialog from "@/components/custom/PreviewDialog";
+import { AdminActions, AddButton } from "@/components/custom/AdminButtons";
+import { listItem } from "@/constants/animation";
+
+const gridCls = "grid gap-5 grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]";
 
 export default function AchievementPage() {
   const { t, lang } = useLanguage();
   const formatMonthYear = (dateString) => {
-    if (!dateString) return "Present";
+    if (!dateString) return t("Present");
     const date = new Date(dateString);
     if (isNaN(date)) return dateString;
     return date.toLocaleDateString(lang === "id" ? "id-ID" : "en-US", {
@@ -47,7 +50,7 @@ export default function AchievementPage() {
     return matchesSearch && matchesType && matchesCategory;
   });
 
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAchievement, setEditingAchievement] = useState(null);
   const [previewAchievement, setPreviewAchievement] = useState(null);
@@ -139,129 +142,109 @@ export default function AchievementPage() {
   }, []);
 
   return (
-    <div className="space-y-6 sm:space-y-14 pb-12">
-      {/* Header */}
-      <section className="space-y-3 pt-2 sm:pt-4 border-b border-neutral-800/80 pb-5 sm:pb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Badge type="hybrid" label={t("Certifications & Honors")} size="sm" />
-          </div>
+    <div className="pb-8">
+      <PageHeader
+        title={t("Achievement")}
+        intro={t("A collection of verified technical certifications, design awards, and industry credentials.")}
+      >
+        {isAdmin && <AddButton label={t("Add Achievement")} onClick={handleOpenAdd} />}
+      </PageHeader>
 
-          {isAdmin && (
-            <button
-              onClick={handleOpenAdd}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer shrink-0 shadow-md shadow-emerald-600/10 active:scale-95"
-            >
-              <Plus className="size-4" />
-              <span>{t("Add Achievement")}</span>
-            </button>
-          )}
-        </div>
-
-        <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">{t("Achievements & Verified Licenses")}</h1>
-        <p className="text-sm sm:text-base text-neutral-400 max-w-2xl leading-relaxed">{t("A collection of verified technical certifications, design awards, and industry credentials.")}</p>
-      </section>
-
-      {/* Filter Bar */}
-      <section className="flex flex-col md:flex-row gap-3 md:items-center justify-between w-full">
-        <input
-          type="text"
-          placeholder={t("Search title or organizer...")}
-          className="px-3.5 py-3 sm:py-2 rounded-xl bg-neutral-900/60 border border-neutral-800 text-base sm:text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500/60 transition-colors w-full md:max-w-xs"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+      {/* Filters */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-7 pb-10">
+        <FilterPills
+          label={t("Filter by type")}
+          value={selectedType}
+          onChange={setSelectedType}
+          options={uniqueTypes.map((type) => ({ value: type, label: type === "All" ? t("All Types") : t(type) }))}
         />
+        <label className="basis-[340px] grow sm:grow-0">
+          <span className="sr-only">{t("Search achievements")}</span>
+          <Input
+            type="search"
+            placeholder={t("Search title or organizer...")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </label>
+      </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0 md:flex-wrap md:overflow-visible scrollbar-hide">
-          {uniqueTypes.map((type) => (
-            <button
-              key={type}
-              onClick={() => setSelectedType(type)}
-              className={`py-2 sm:py-1.5 px-3.5 sm:px-3 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                selectedType === type
-                  ? "bg-neutral-800 text-white border border-neutral-700 shadow-sm"
-                  : "bg-neutral-900/60 text-neutral-400 border border-neutral-800 hover:text-neutral-200"
-              }`}
-            >
-              {type === "All" ? t("All Types") : t(type)}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Cards Grid */}
+      {/* Cards */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 ">
+        <div aria-busy="true" className={gridCls}>
           {[1, 2, 3, 4, 5, 6].map((n) => (
-            <div key={n} className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-4 h-64 flex flex-col gap-3">
-              <div className="w-full aspect-video rounded-xl bg-neutral-800/50" />
-              <div className="h-4 w-1/2 bg-neutral-800/60 rounded" />
+            <div key={n} className="rounded-panel bg-surface p-3 flex flex-col gap-4">
+              <div className="aspect-[297/210] rounded-card bg-paper animate-pulse" />
+              <div className="h-5 w-2/3 rounded-full bg-paper animate-pulse" />
             </div>
           ))}
         </div>
       ) : error ? (
-        <div className="py-10 text-center text-red-400 bg-red-950/20 border border-red-900/30 rounded-2xl">
-          Error: {error}
-        </div>
+        <p className="py-10 text-center rounded-card border-[1.5px] border-destructive text-destructive">
+          {t("Error:")} {error}
+        </p>
+      ) : filteredAchievements.length === 0 ? (
+        <p className="py-12 text-center text-muted border-[1.5px] border-dashed border-line rounded-card">
+          {t("No achievements match your filters.")}
+        </p>
       ) : (
-        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <motion.div layout className={gridCls}>
           <AnimatePresence mode="popLayout">
-            {filteredAchievements.map((achieve) => (
-              <motion.div
-                key={achieve.id}
-                layout
-                {...listItem}
-                onClick={() => setPreviewAchievement(achieve)}
-                className="group relative p-3 sm:p-4 rounded-2xl bg-neutral-900/40 border border-neutral-800/80 hover:border-neutral-700 transition-all duration-300 sm:hover:-translate-y-1 active:scale-[0.98] sm:active:scale-100 shadow-sm flex flex-col justify-between space-y-3 cursor-pointer"
-              >
-                {isAdmin && (
-                  <div className="absolute top-4 right-4 z-20 flex gap-1.5">
-                    <button
-                      onClick={(e) => handleOpenEdit(e, achieve)}
-                      className="p-2 sm:p-1.5 rounded-lg bg-neutral-950/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 backdrop-blur transition-all"
-                    >
-                      <Edit className="size-3.5 sm:size-3" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(e, achieve.id)}
-                      className="p-2 sm:p-1.5 rounded-lg bg-neutral-950/80 hover:bg-red-950/80 text-neutral-300 hover:text-red-400 border border-neutral-800 hover:border-red-900 backdrop-blur transition-all"
-                    >
-                      <Trash2 className="size-3.5 sm:size-3" />
-                    </button>
-                  </div>
-                )}
-
-                <div className="relative w-full aspect-[297/210] rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
-                  {achieve.image ? (
-                    <Image src={achieve.image} alt={achieve.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-neutral-600">
-                      <Award className="size-10" />
+            {filteredAchievements.map((achieve, index) => {
+              // The newest entry is the one ink card on the page
+              const emphasis = index === 0;
+              return (
+                <motion.div key={achieve.id} layout {...listItem} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewAchievement(achieve)}
+                    className={`group w-full h-full text-left flex flex-col gap-4 rounded-panel p-3 transition-transform duration-200 hover:-translate-y-1 cursor-pointer ${
+                      emphasis ? "bg-ink text-on-ink" : "bg-surface text-ink"
+                    }`}
+                  >
+                    <div className={`relative w-full aspect-[297/210] rounded-card overflow-hidden ${emphasis ? "bg-ink-line" : "bg-paper"}`}>
+                      {achieve.image ? (
+                        <Image
+                          src={achieve.image}
+                          alt=""
+                          fill
+                          sizes="(min-width: 1240px) 400px, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className={`absolute inset-0 flex items-center justify-center text-[13px] ${emphasis ? "text-on-ink-subtle" : "text-subtle"}`}>
+                          {t("No image")}
+                        </span>
+                      )}
                     </div>
+                    <div className="flex flex-col gap-1.5 px-2 pb-2">
+                      <span className={`text-sm ${emphasis ? "text-on-ink-subtle" : "text-muted"}`}>
+                        {[t(achieve.type), t(achieve.category)].filter(Boolean).join(" · ")}
+                      </span>
+                      <span className="font-display font-bold text-xl leading-tight tracking-[-0.01em] line-clamp-2 group-hover:underline underline-offset-4">
+                        {achieve.title}
+                      </span>
+                      <span className={`text-[15px] truncate ${emphasis ? "text-on-ink-muted" : "text-muted"}`}>{achieve.organizer}</span>
+                      <span className={`text-sm font-semibold pt-2 ${emphasis ? "text-on-ink" : "text-ink"}`}>
+                        {t("Issued")} {formatMonthYear(achieve.issuedDate)}
+                      </span>
+                    </div>
+                  </button>
+                  {isAdmin && (
+                    <AdminActions
+                      label={achieve.title}
+                      className="absolute top-5 right-5 z-10"
+                      onEdit={(e) => handleOpenEdit(e, achieve)}
+                      onDelete={(e) => handleDelete(e, achieve.id)}
+                    />
                   )}
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-400">
-                    {t(achieve.type)} • {t(achieve.category)}
-                  </span>
-                  <h3 className="text-sm font-bold text-neutral-100 line-clamp-2" title={achieve.title}>
-                    {achieve.title}
-                  </h3>
-                  <p className="text-xs text-neutral-400 truncate">{achieve.organizer}</p>
-                </div>
-
-                <div className="pt-2 border-t border-neutral-800/60 flex items-center justify-between text-xs text-neutral-500">
-                  <span className="text-[11px] font-mono">{t("Issued")} {formatMonthYear(achieve.issuedDate)}</span>
-                  <ArrowUpRight className="size-3.5 text-neutral-400 group-hover:text-emerald-400 transition-colors" />
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </motion.div>
       )}
 
-      {/* Crud Modal */}
       <CrudModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -273,57 +256,43 @@ export default function AchievementPage() {
         subtitle="Certificates, awards, and courses shown on the Achievement page."
       />
 
-      {/* Preview Lightbox Modal */}
       <AnimatePresence>
         {previewAchievement && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <motion.div
-              {...modalBackdrop}
-            onClick={() => setPreviewAchievement(null)}
-              className="absolute inset-0 bg-neutral-950/85 backdrop-blur-md"
-            />
-
-            <motion.div
-              {...modalPanel}
-            className="relative bg-neutral-900 border border-neutral-800 rounded-t-2xl rounded-b-none sm:rounded-2xl w-full max-w-5xl max-h-[88vh] sm:max-h-[90vh] overflow-y-auto md:overflow-hidden shadow-2xl z-10 flex flex-col md:flex-row"
-            >
-              <button
-                onClick={() => setPreviewAchievement(null)}
-                className="absolute top-3 right-3 z-30 p-2.5 rounded-full bg-neutral-950/90 border border-neutral-800 text-neutral-300 hover:text-white"
-              >
-                <X className="size-4" />
-              </button>
-
-              <div className="w-full md:w-3/5 aspect-[4/3] md:aspect-auto md:min-h-[26rem] relative bg-neutral-950 shrink-0">
-                {previewAchievement.image ? (
-                  <Image src={previewAchievement.image} alt={previewAchievement.title} fill className="object-contain p-4" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-neutral-600">
-                    <Award className="size-12" />
-                  </div>
-                )}
-              </div>
-
-              <div className="w-full md:w-2/5 p-6 sm:p-8 flex flex-col justify-between gap-6">
-                <div className="space-y-4">
-                  <span className="text-xs font-mono uppercase font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md inline-block">
-                    {t(previewAchievement.type)} • {t(previewAchievement.category)}
-                  </span>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight pr-8">{previewAchievement.title}</h2>
-                  <p className="text-sm sm:text-base text-neutral-300 font-medium">{t("Issued by:")} {previewAchievement.organizer}</p>
-                  {previewAchievement.credentialId && (
-                    <p className="text-xs sm:text-sm font-mono text-neutral-400 bg-neutral-950/60 p-3 rounded-lg border border-neutral-800 break-all">
-                      ID: {previewAchievement.credentialId}
-                    </p>
-                  )}
-                </div>
-
-                <div className="text-xs sm:text-sm font-mono text-neutral-500 pt-3 border-t border-neutral-800">
-                  {t("Issued date:")} {formatMonthYear(previewAchievement.issuedDate)}
-                </div>
-              </div>
-            </motion.div>
-          </div>
+          <PreviewDialog
+            label={previewAchievement.title}
+            onClose={() => setPreviewAchievement(null)}
+            media={
+              previewAchievement.image ? (
+                <Image
+                  src={previewAchievement.image}
+                  alt={previewAchievement.title}
+                  fill
+                  sizes="(min-width: 768px) 600px, 100vw"
+                  className="object-contain p-4"
+                />
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center text-sm text-subtle">{t("No image")}</span>
+              )
+            }
+          >
+            <div className="flex flex-col gap-4">
+              <span className="text-sm font-bold uppercase tracking-[0.08em] text-muted">
+                {[t(previewAchievement.type), t(previewAchievement.category)].filter(Boolean).join(" · ")}
+              </span>
+              <h2 className="font-display font-bold text-[28px] sm:text-[32px] leading-tight tracking-[-0.02em]">
+                {previewAchievement.title}
+              </h2>
+              <p className="text-base">
+                {t("Issued by:")} <span className="font-semibold">{previewAchievement.organizer}</span>
+              </p>
+              {previewAchievement.credentialId && (
+                <p className="text-sm text-muted break-all rounded-card bg-surface p-3">ID: {previewAchievement.credentialId}</p>
+              )}
+            </div>
+            <p className="mt-auto pt-4 border-t-[1.5px] border-ink text-sm font-semibold">
+              {t("Issued date:")} {formatMonthYear(previewAchievement.issuedDate)}
+            </p>
+          </PreviewDialog>
         )}
       </AnimatePresence>
     </div>

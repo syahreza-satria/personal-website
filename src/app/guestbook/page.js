@@ -4,13 +4,16 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
-import { motion, AnimatePresence } from "motion/react";
 import { Trash2, Send, Smile, Loader2, CornerUpLeft, X } from "lucide-react";
-import { PiChatText } from "react-icons/pi";
 import { useLanguage } from "@/hooks/useLanguage";
+import PageHeader from "@/components/custom/PageHeader";
 
 // List of allowed emojis for reactions
 const EMOJI_LIST = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+// Small round icon action (react / reply / delete); 44px on touch, 36px on desktop
+const iconBtn =
+  "inline-flex items-center justify-center size-11 lg:size-9 rounded-full text-muted hover:text-ink hover:bg-surface transition-colors cursor-pointer";
 
 export default function Guestbook() {
   const { t, lang } = useLanguage();
@@ -212,276 +215,246 @@ export default function Guestbook() {
   };
 
   return (
-    <div className="w-full">
+    <div className="pb-8">
+      <PageHeader title={t("Guestbook")} intro={t("Feel free to share your thoughts, suggestions, questions, or anything else!")} />
 
-      <motion.div
-        animate={{ y: 0, opacity: 1 }}
-        initial={{ y: 20, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className="w-full space-y-6 pb-4 flex flex-col h-[calc(100vh-11rem)] min-h-[28rem]"
+      {/* Chat feed */}
+      <section
+        aria-label={t("Messages")}
+        className="mt-8 max-h-[70vh] min-h-[24rem] overflow-y-auto flex flex-col gap-6 py-2 pr-1"
       >
-        {/* Header */}
-        <section className="flex flex-col gap-2 shrink-0">
-          <h1 className="text-2xl font-medium tracking-tighter flex items-center gap-2">
-            <PiChatText className="size-6 text-emerald-500" />{t("Guestbook")}</h1>
-          <p className="text-neutral-400 text-sm md:text-base leading-relaxed">{t("Feel free to share your thoughts, suggestions, questions, or anything else!")}</p>
-        </section>
+        {isLoading ? (
+          <div className="grow flex flex-col items-center justify-center gap-3 text-muted">
+            <Loader2 className="size-7 animate-spin" aria-hidden="true" />
+            <span>{t("Loading messages...")}</span>
+          </div>
+        ) : messages.length === 0 ? (
+          <p className="grow flex items-center justify-center text-center p-8 text-muted border-[1.5px] border-dashed border-line rounded-card">
+            {t("No messages yet. Be the first to write something!")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-6">
+            {messages.map((msg) => {
+              const hasReactions = Object.keys(msg.reactions || {}).length > 0;
+              const parentMsg = msg.parent_id ? messages.find((m) => m.id === msg.parent_id) : null;
+              const isOwn = user && user.id === msg.user_id;
 
-        <hr className="border-neutral-800 border-dashed shrink-0" />
+              return (
+                <li
+                  key={msg.id}
+                  id={`msg-${msg.id}`}
+                  className={`flex gap-3 sm:gap-4 group items-start scroll-mt-24 ${isOwn ? "flex-row-reverse" : ""}`}
+                >
+                  {msg.user_avatar ? (
+                    <Image
+                      src={msg.user_avatar}
+                      alt=""
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className="size-9 sm:size-10 rounded-full object-cover bg-surface shrink-0"
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      className="size-9 sm:size-10 rounded-full bg-ink text-on-ink flex items-center justify-center text-sm font-bold uppercase shrink-0"
+                    >
+                      {msg.user_name?.[0] || "?"}
+                    </div>
+                  )}
 
-        {/* Chat Feed */}
-        <div className="grow overflow-y-auto bg-transparent sm:bg-neutral-900/20 border-0 sm:border border-neutral-900 rounded-3xl p-1 sm:p-6 flex flex-col gap-6 scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent">
-          {isLoading ? (
-            <div className="grow flex flex-col items-center justify-center gap-2 text-neutral-500">
-              <Loader2 className="size-8 animate-spin text-emerald-500" />
-              <span>{t("Loading messages...")}</span>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="grow flex flex-col items-center justify-center text-center p-8 text-neutral-500 border border-dashed border-neutral-800 rounded-2xl">
-              <PiChatText className="size-12 mb-3 text-neutral-700" />
-              <p className="text-sm font-medium">{t("No messages yet. Be the first to write something!")}</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6">
-              {messages.map((msg) => {
-                const hasReactions = Object.keys(msg.reactions || {}).length > 0;
-                const parentMsg = msg.parent_id ? messages.find((m) => m.id === msg.parent_id) : null;
+                  <div className={`flex flex-col gap-1.5 max-w-[calc(100%-3rem)] sm:max-w-[75%] ${isOwn ? "items-end" : ""}`}>
+                    <div className={`flex items-baseline gap-2 flex-wrap ${isOwn ? "flex-row-reverse" : ""}`}>
+                      <span className="text-sm font-semibold">{msg.user_name}</span>
+                      <span className="text-xs text-muted">{formatDate(msg.created_at)}</span>
+                    </div>
 
-                return (
-                  <div key={msg.id} id={`msg-${msg.id}`} className="flex gap-2.5 sm:gap-4 group items-start scroll-mt-24">
-                    {/* User Avatar */}
-                    {msg.user_avatar ? (
-                      <Image
-                        src={msg.user_avatar}
-                        alt={msg.user_name}
-                        width={40}
-                        height={40}
-                        unoptimized
-                        className="size-8.5 sm:size-10 rounded-full object-cover border border-neutral-800 shrink-0"
-                      />
-                    ) : (
-                      <div className="size-8.5 sm:size-10 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-xs font-bold text-neutral-300 uppercase shrink-0">
-                        {msg.user_name?.[0] || "?"}
-                      </div>
-                    )}
+                    {/* Bubble: others on surface, own messages on ink */}
+                    <div
+                      data-surface={isOwn ? "ink" : undefined}
+                      className={`px-4 py-2.5 rounded-[20px] text-[15px] leading-relaxed w-fit break-words ${
+                        isOwn ? "bg-ink text-on-ink rounded-tr-md" : "bg-surface text-ink rounded-tl-md"
+                      }`}
+                    >
+                      {parentMsg && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const parentEl = document.getElementById(`msg-${msg.parent_id}`);
+                            parentEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+                          }}
+                          className={`w-full text-left border-l-[3px] px-3 py-1.5 rounded-lg mb-2 text-[13px] flex flex-col gap-0.5 cursor-pointer ${
+                            isOwn ? "bg-ink-line border-accent" : "bg-paper border-ink"
+                          }`}
+                        >
+                          <span className="font-semibold">{parentMsg.user_name}</span>
+                          <span className={`line-clamp-1 ${isOwn ? "text-on-ink-muted" : "text-muted"}`}>{parentMsg.message}</span>
+                        </button>
+                      )}
+                      <p>{msg.message}</p>
+                    </div>
 
-                    {/* Message Details */}
-                    <div className="flex flex-col gap-1.5 max-w-[calc(100%-2.5rem)] sm:max-w-[75%]">
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-xs sm:text-sm font-bold text-neutral-200">
-                          {msg.user_name}
-                        </span>
-                        <span className="text-[10px] text-neutral-500">
-                          {formatDate(msg.created_at)}
-                        </span>
-                      </div>
-
-                      {/* Chat Bubble */}
-                      <div className="relative bg-neutral-900/60 border border-neutral-850 text-neutral-200 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl rounded-tl-none text-xs sm:text-sm leading-relaxed shadow-sm w-fit break-words">
-                        {/* Parent Quote Block */}
-                        {parentMsg && (
-                          <div
-                            onClick={() => {
-                              const parentEl = document.getElementById(`msg-${msg.parent_id}`);
-                              parentEl?.scrollIntoView({ behavior: "smooth", block: "center" });
-                            }}
-                            className="bg-neutral-950/50 border-l-[3px] border-emerald-500 px-2.5 py-1.5 rounded-lg mb-2 text-[10px] sm:text-xs flex flex-col gap-0.5 cursor-pointer max-w-full hover:bg-neutral-950/80 transition-colors"
-                          >
-                            <span className="font-bold text-emerald-400">
-                              {parentMsg.user_name}
-                            </span>
-                            <span className="text-neutral-400 line-clamp-1">
-                              {parentMsg.message}
-                            </span>
-                          </div>
-                        )}
-                        
-                        <div>{msg.message}</div>
-                      </div>
-
-                      {/* Reactions & Actions Row */}
-                      <div className="flex items-center gap-2 flex-wrap mt-1">
-                        {/* Render Reactions */}
-                        {hasReactions &&
-                          Object.entries(msg.reactions).map(([emoji, userIds]) => {
-                            if (!userIds || userIds.length === 0) return null;
-                            const hasReacted = user && userIds.includes(user.id);
-                            return (
-                              <button
-                                key={emoji}
-                                onClick={() => handleReact(msg.id, emoji)}
-                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs transition-all cursor-pointer ${
-                                  hasReacted
-                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold"
-                                    : "bg-neutral-900 border-neutral-850 text-neutral-400 hover:text-neutral-200"
-                                }`}
-                              >
-                                <span>{emoji}</span>
-                                <span>{userIds.length}</span>
-                              </button>
-                            );
-                          })}
-
-                        {/* Add Reaction Button (+ icon) */}
-                        {user && (
-                          <div className="relative">
+                    {/* Reactions & actions */}
+                    <div className={`flex items-center gap-1 flex-wrap ${isOwn ? "flex-row-reverse" : ""}`}>
+                      {hasReactions &&
+                        Object.entries(msg.reactions).map(([emoji, userIds]) => {
+                          if (!userIds || userIds.length === 0) return null;
+                          const hasReacted = user && userIds.includes(user.id);
+                          return (
                             <button
-                              onClick={() =>
-                                setActiveReactionMenu(activeReactionMenu === msg.id ? null : msg.id)
-                              }
-                              className="flex items-center justify-center size-6 rounded-full border border-neutral-800 hover:border-neutral-700 text-neutral-500 hover:text-neutral-300 bg-neutral-900/50 hover:bg-neutral-900 transition-colors cursor-pointer"
-                              title={t("React to message")}
+                              key={emoji}
+                              type="button"
+                              onClick={() => handleReact(msg.id, emoji)}
+                              aria-pressed={!!hasReacted}
+                              className={`inline-flex items-center gap-1 px-3 min-h-11 lg:min-h-9 rounded-full border-[1.5px] text-sm transition-colors cursor-pointer ${
+                                hasReacted ? "bg-accent border-accent text-ink font-semibold" : "bg-surface border-line text-ink hover:border-ink"
+                              }`}
                             >
-                              <Smile className="size-3.5" />
+                              <span aria-hidden="true">{emoji}</span>
+                              <span>{userIds.length}</span>
                             </button>
+                          );
+                        })}
 
-                            {/* Reaction Emoji Menu */}
-                            {activeReactionMenu === msg.id && (
-                              <div
-                                ref={reactionMenuRef}
-                                className="absolute bottom-7 left-0 z-30 flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 p-1.5 rounded-xl shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-150"
-                              >
-                                {EMOJI_LIST.map((emoji) => (
-                                  <button
-                                    key={emoji}
-                                    onClick={() => handleReact(msg.id, emoji)}
-                                    className="hover:scale-125 transition-transform p-1 cursor-pointer text-base"
-                                  >
-                                    {emoji}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Reply Button */}
-                        {user && (
+                      {user && (
+                        <div className="relative">
                           <button
-                            onClick={() => setReplyingTo(msg)}
-                            className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 p-1 rounded hover:bg-neutral-800 text-neutral-500 hover:text-neutral-300 transition-all duration-200 cursor-pointer"
-                            title={t("Reply to message")}
+                            type="button"
+                            onClick={() => setActiveReactionMenu(activeReactionMenu === msg.id ? null : msg.id)}
+                            aria-label={t("React to message")}
+                            aria-expanded={activeReactionMenu === msg.id}
+                            className={iconBtn}
                           >
-                            <CornerUpLeft className="size-3.5" />
+                            <Smile className="size-4" aria-hidden="true" />
                           </button>
-                        )}
 
-                        {/* Delete Button (If author or Admin) */}
-                        {(isAdmin || (user && user.id === msg.user_id)) && (
-                          <button
-                            onClick={() => handleDeleteMessage(msg.id)}
-                            className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-neutral-500 hover:text-red-400 transition-all duration-200 cursor-pointer ml-1"
-                            title={t("Delete message")}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
+                          {activeReactionMenu === msg.id && (
+                            <div
+                              ref={reactionMenuRef}
+                              className={`absolute bottom-12 ${isOwn ? "right-0" : "left-0"} z-30 flex items-center gap-0.5 bg-surface border-[1.5px] border-ink p-1 rounded-full animate-in fade-in slide-in-from-bottom-2 duration-150`}
+                            >
+                              {EMOJI_LIST.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => handleReact(msg.id, emoji)}
+                                  className="flex items-center justify-center size-11 rounded-full hover:bg-paper transition-colors cursor-pointer text-lg"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {user && (
+                        <button
+                          type="button"
+                          onClick={() => setReplyingTo(msg)}
+                          aria-label={t("Reply to message")}
+                          className={`${iconBtn} lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100`}
+                        >
+                          <CornerUpLeft className="size-4" aria-hidden="true" />
+                        </button>
+                      )}
+
+                      {(isAdmin || (user && user.id === msg.user_id)) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          aria-label={t("Delete message")}
+                          className={`${iconBtn} hover:text-destructive lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100`}
+                        >
+                          <Trash2 className="size-4" aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
+                </li>
+              );
+            })}
+            <li ref={messagesEndRef} aria-hidden="true" />
+          </ul>
+        )}
+      </section>
 
-        {/* Auth status & Chat Input Section */}
-        <section className="shrink-0">
-          {user ? (
-            <form onSubmit={handleSendMessage} className="flex gap-2.5 items-end">
-              {/* Profile Avatar */}
-              {user.user_metadata?.avatar_url ? (
-                <Image
-                  src={user.user_metadata.avatar_url}
-                  alt="My Profile"
-                  width={40}
-                  height={40}
-                  unoptimized
-                  className="size-10 rounded-full border border-neutral-800 mb-1 hidden sm:block shrink-0"
-                />
-              ) : (
-                <div className="size-10 rounded-full bg-neutral-850 border border-neutral-800 flex items-center justify-center text-xs font-bold text-neutral-400 mb-1 hidden sm:block shrink-0">
-                  {user.email?.[0]?.toUpperCase()}
+      {/* Composer / sign-in */}
+      <section className="mt-6 pt-6 border-t-2 border-ink">
+        {user ? (
+          <form onSubmit={handleSendMessage} className="flex gap-3 items-end">
+            <div className="grow flex flex-col">
+              {replyingTo && (
+                <div className="flex justify-between items-center gap-3 bg-surface border-l-[3px] border-accent pl-4 pr-1 py-1 rounded-t-[20px] text-[13px] animate-in slide-in-from-bottom-2 duration-150">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="font-semibold">{t("Replying to {name}", { name: replyingTo.user_name })}</span>
+                    <span className="text-muted line-clamp-1">{replyingTo.message}</span>
+                  </div>
+                  <button type="button" onClick={() => setReplyingTo(null)} aria-label={t("Cancel reply")} className={iconBtn}>
+                    <X className="size-4" aria-hidden="true" />
+                  </button>
                 </div>
               )}
 
-              {/* Input & Reply Container */}
-              <div className="grow flex flex-col relative">
-                {/* Reply Preview Bar */}
-                {replyingTo && (
-                  <div className="flex justify-between items-center bg-neutral-900 border border-neutral-800 border-b-0 border-l-[3px] border-l-emerald-500 px-4 py-2 rounded-t-2xl text-xs backdrop-blur-md animate-in slide-in-from-bottom-2 duration-150">
-                    <div className="flex flex-col gap-0.5 truncate pr-4">
-                      <span className="font-bold text-emerald-400">{t("Replying to {name}", { name: replyingTo.user_name })}</span>
-                      <span className="text-neutral-400 line-clamp-1">{replyingTo.message}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setReplyingTo(null)}
-                      className="text-neutral-500 hover:text-neutral-300 p-1 shrink-0 cursor-pointer"
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </div>
-                )}
-                
-                <div className="relative w-full">
-                  <textarea
-                    placeholder={t("Share your thoughts...")}
-                    rows={2}
-                    maxLength={500}
-                    className={`w-full bg-neutral-900 border border-neutral-800 focus:border-emerald-500/50 px-4 py-2.5 text-sm text-neutral-200 placeholder-neutral-500 outline-none resize-none pr-12 focus:ring-1 focus:ring-emerald-500/20 ${
-                      replyingTo ? "rounded-b-2xl rounded-t-none border-t-0" : "rounded-2xl"
-                    }`}
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage(e);
-                      }
-                    }}
-                  />
-                  <span className="absolute bottom-2 right-3 text-[10px] text-neutral-600 font-mono">
-                    {newMessage.length}/500
-                  </span>
-                </div>
-              </div>
-
-              {/* Send Button */}
-              <button
-                type="submit"
-                disabled={!newMessage.trim() || isSending}
-                className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-800 disabled:text-neutral-600 text-white font-medium p-3 rounded-2xl transition-all cursor-pointer shrink-0 disabled:cursor-not-allowed shadow-lg shadow-emerald-600/10 active:scale-95 flex items-center justify-center h-11 w-11"
-              >
-                {isSending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Send className="size-4" />
-                )}
-              </button>
-            </form>
-          ) : (
-            <div className="bg-neutral-900/40 border border-neutral-900 rounded-3xl p-5 text-center flex flex-col items-center gap-3">
-              <p className="text-xs sm:text-sm text-neutral-400">{t("Please sign in to join the conversation. Don't worry, your data is safe with us.")}</p>
-              <button
-                onClick={signInWithGoogle}
-                className="bg-neutral-800 hover:bg-neutral-750 text-neutral-200 border border-neutral-700 text-xs py-2 px-4 rounded-xl cursor-pointer font-medium hover:border-neutral-600 transition-all flex items-center gap-2 active:scale-95"
-              >
-                <Image
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                  width={16}
-                  height={16}
-                  unoptimized
-                  className="size-4"
-                  alt="Google"
+              <label htmlFor="guestbook-message" className="sr-only">
+                {t("Your message")}
+              </label>
+              <div className="relative w-full">
+                <textarea
+                  id="guestbook-message"
+                  placeholder={t("Share your thoughts...")}
+                  rows={2}
+                  maxLength={500}
+                  className={`w-full bg-surface border-[1.5px] border-line hover:border-subtle focus:border-ink focus-visible:outline-offset-0 px-4 py-3 pr-16 text-[15px] text-ink placeholder:text-subtle resize-none transition-colors ${
+                    replyingTo ? "rounded-b-[20px] rounded-t-none" : "rounded-[20px]"
+                  }`}
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage(e);
+                    }
+                  }}
                 />
-                <span>{t("Login with Google")}</span>
-              </button>
+                <span className="absolute bottom-3 right-4 text-xs text-subtle tabular-nums" aria-hidden="true">
+                  {newMessage.length}/500
+                </span>
+              </div>
             </div>
-          )}
-        </section>
-      </motion.div>
+
+            <button
+              type="submit"
+              disabled={!newMessage.trim() || isSending}
+              aria-label={t("Send message")}
+              className="inline-flex items-center justify-center size-13 rounded-full bg-accent text-ink disabled:bg-line disabled:text-muted disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0 mb-1"
+            >
+              {isSending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <Send className="size-5" aria-hidden="true" />}
+            </button>
+          </form>
+        ) : (
+          <div data-surface="ink" className="rounded-panel bg-ink text-on-ink p-8 flex flex-col items-start gap-5">
+            <p className="font-display font-bold text-2xl sm:text-[28px] leading-tight tracking-[-0.02em] max-w-[560px]">
+              {t("Please sign in to join the conversation. Don't worry, your data is safe with us.")}
+            </p>
+            <button
+              type="button"
+              onClick={signInWithGoogle}
+              className="inline-flex items-center gap-2.5 min-h-12 px-6 rounded-full bg-accent text-ink text-[15px] font-semibold cursor-pointer"
+            >
+              <Image
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                width={18}
+                height={18}
+                unoptimized
+                className="size-[18px]"
+                alt=""
+              />
+              {t("Login with Google")}
+            </button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
