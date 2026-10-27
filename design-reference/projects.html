@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Projects — Syahreza Satria</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=DM+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EFEFEC}
+a{color:#111111;text-decoration:none}
+a:hover{text-decoration:underline}
+.shot:hover{transform:translateY(-4px);text-decoration:none}
+input:focus{outline:2px solid #111111;outline-offset:2px}
+</style>
+</helmet>
+<div style="background: #EFEFEC; color: #111111; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh;">
+<div style="max-width: 1240px; margin: 0 auto; padding: 0 20px;">
+
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 0;">
+<a href="Showcase.dc.html" style="font: 800 20px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em;">SYAHREZA®</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 15px; font-weight: 500;">
+<a href="#" aria-current="page" style="padding: 10px 16px; border-radius: 999px; background: #111111; color: #EFEFEC;">Work</a>
+<a href="C-About.dc.html" style="padding: 10px 16px; border-radius: 999px; background: #FFFFFF;">About</a>
+<a href="#" style="padding: 10px 16px; border-radius: 999px; background: #FFFFFF;">Achievement</a>
+<a href="#" style="padding: 10px 16px; border-radius: 999px; background: #FFFFFF;">Gears</a>
+<a href="#" style="padding: 10px 16px; border-radius: 999px; background: #FFFFFF;">Guestbook</a>
+<a href="#" style="padding: 10px 16px; border-radius: 999px; background: {{accent}};">Contact</a>
+</nav>
+</header>
+
+<section style="padding: 56px 0 32px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px; border-bottom: 2px solid #111111;">
+<h1 style="margin: 0; font: 800 clamp(64px, 12vw, 168px) / 0.86 'Bricolage Grotesque', sans-serif; letter-spacing: -0.05em;">Work<sup style="font-size: 0.28em; letter-spacing: 0; vertical-align: top; color: #4A4A46;">({{count}})</sup></h1>
+<p style="margin: 0; font-size: 18px; line-height: 1.5; max-width: 420px;">Web apps, design systems and media — sorted by which side of me built them.</p>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 28px 0 40px;">
+<div role="group" aria-label="Filter by type" style="display: flex; flex-wrap: wrap; gap: 8px;">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+<sc-if value="{{f.on}}" hint-placeholder-val="{{false}}"><button type="button" onClick="{{f.pick}}" aria-pressed="true" style="font: 600 15px 'DM Sans', sans-serif; padding: 0 20px; min-height: 44px; border-radius: 999px; cursor: pointer; border: 1.5px solid #111111; background: #111111; color: #EFEFEC;">{{f.label}}</button></sc-if>
+<sc-if value="{{f.off}}" hint-placeholder-val="{{true}}"><button type="button" onClick="{{f.pick}}" aria-pressed="false" style="font: 600 15px 'DM Sans', sans-serif; padding: 0 20px; min-height: 44px; border-radius: 999px; cursor: pointer; border: 1.5px solid #111111; background: transparent; color: #111111;">{{f.label}}</button></sc-if>
+</sc-for>
+</div>
+<label style="display: flex; align-items: center; gap: 10px; background: #FFFFFF; border-radius: 999px; padding: 0 18px; min-height: 48px; flex: 0 1 340px;">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A4A46" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Search projects</span>
+<input type="search" placeholder="Search title, tech, category…" style="border: 0; background: transparent; font: 400 15px 'DM Sans', sans-serif; color: #111111; flex: 1; min-width: 0; height: 46px; outline-offset: 6px;">
+</label>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 40px 24px; padding-bottom: 96px;">
+<sc-for list="{{shown}}" as="p" hint-placeholder-count="4">
+<a href="C-ProjectDetail.dc.html" class="shot" style="display: flex; flex-direction: column; gap: 16px; transition: transform .2s;">
+<div style="position: relative; aspect-ratio: 16 / 10; border-radius: 20px; background: {{p.bg}}; display: flex; align-items: center; justify-content: center; font-size: 13px; color: {{p.fg}};">
+[SCREENSHOT]
+<span style="position: absolute; top: 14px; left: 14px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; background: #FFFFFF; color: #111111; padding: 6px 12px; border-radius: 999px;"><sc-if value="{{p.live}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: {{accent}};"></span></sc-if><sc-if value="{{p.done}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #111111;"></span></sc-if>{{p.status}}</span>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+<span style="font-size: 14px; color: #4A4A46;">{{p.category}} · {{p.year}}</span>
+<span style="font: 700 28px / 1.1 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em;">{{p.title}}</span>
+<span style="font-size: 14px; color: #4A4A46;">{{p.tech}}</span>
+</div>
+<span style="font-weight: 600; font-size: 13px; border: 1.5px solid #111111; padding: 6px 12px; border-radius: 999px; white-space: nowrap;">{{p.typeLabel}}</span>
+</div>
+</a>
+</sc-for>
+</div>
+
+<footer style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding: 24px 0 48px; font-size: 15px; font-weight: 500; border-top: 2px solid #111111;">
+<span>Got a project like these? <a href="mailto:contact@syahreza-satria.xyz" style="text-decoration: underline;">contact@syahreza-satria.xyz</a></span>
+<span style="color: #4A4A46;">Bandung, Indonesia · EN / ID</span>
+</footer>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#FF5A1F","options":["#FF5A1F","#C6F432","#7C9CFF","#FFC21A"]},"$preview":{"width":1280,"height":2200}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { filter: 'all' }; }
+renderVals() {
+const accent = this.props.accent ?? '#FF5A1F';
+const all = [
+{ title: 'Personal Branding & Portfolio Platform', type: 'hybrid', category: 'Full-Stack & UI/UX Design', year: '2024', status: 'Live', tech: 'Next.js 16 · React 19 · Tailwind CSS · Supabase', bg: '#111111', fg: '#B5B5AF' },
+{ title: 'Full-Stack Enterprise Management System', type: 'dev', category: 'Web Application', year: '2024', status: 'Completed', tech: 'Laravel · React · Supabase · PostgreSQL', bg: '#FFFFFF', fg: '#6B6B66' },
+{ title: 'Digital Media & Stream Production System', type: 'creative', category: 'Digital Media & Design System', year: '2024', status: 'Live', tech: 'Figma · Photoshop · OBS Studio', bg: '#FFFFFF', fg: '#6B6B66' },
+{ title: 'Interactive Web Component Design System', type: 'hybrid', category: 'Design System & UI Engineering', year: '2023', status: 'Completed', tech: 'React · Tailwind CSS · Radix UI · Motion', bg: '#111111', fg: '#B5B5AF' }
+];
+const labels = { dev: 'Dev', creative: 'Creative', hybrid: 'Hybrid' };
+const f = this.state.filter;
+const shown = all.filter((p) => f === 'all' || p.type === f).map((p) => ({ ...p, typeLabel: labels[p.type], live: p.status === 'Live', done: p.status === 'Completed' }));
+const filters = [['all', 'All'], ['dev', 'Developer'], ['creative', 'Creative'], ['hybrid', 'Hybrid']].map(([key, label]) => ({
+label, on: f === key, off: f !== key, pick: () => this.setState({ filter: key })
+}));
+return { accent, filters, shown, count: all.length };
+}
+}
+</script>
+</body>
+</html>

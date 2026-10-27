@@ -29,9 +29,7 @@ function Shot({ src, alt, sizes, className = "", tone = "surface", priority = fa
           <Image src={src} alt={alt} fill sizes={sizes} priority={priority} className="object-cover" />
         </motion.div>
       ) : (
-        <span className={`absolute inset-0 flex items-center justify-center text-[13px] ${tone === "ink" ? "text-on-ink-subtle" : "text-subtle"}`}>
-          {alt}
-        </span>
+        <span className={`absolute inset-0 flex items-center justify-center text-[13px] ${tone === "ink" ? "text-on-ink-subtle" : "text-subtle"}`}>{alt}</span>
       )}
     </div>
   );
@@ -47,11 +45,7 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from("projects")
-          .select("id, title, description, image, type, category, techstack, project_date")
-          .order("project_date", { ascending: false, nullsFirst: false })
-          .limit(4);
+        const { data, error } = await supabase.from("projects").select("id, title, description, image, type, category, techstack, project_date").order("project_date", { ascending: false, nullsFirst: false }).limit(4);
         if (error) throw error;
         if (!cancelled) setProjects(data?.length ? data : fallbackProjects.slice(0, 4));
       } catch {
@@ -64,9 +58,7 @@ export default function Home() {
   }, []);
 
   const [featured, ...rest] = projects ?? [];
-  const [introBefore, introAfter] = t(
-    "I'm {name}, a hybrid developer & creative specialist from Bandung. I build web apps, design their interfaces and make the media that tells their story."
-  ).split("{name}");
+  const [introBefore, introAfter] = t("I'm {name}, a hybrid developer & creative specialist from Bandung. I build web apps, design their interfaces and make the media that tells their story.").split("{name}");
 
   const heroLine1 = t("Code");
   const heroLine2 = t("Creative.");
@@ -124,32 +116,14 @@ export default function Home() {
           <>
             {featured && (
               <Reveal>
-                <MotionLink
-                  href={`/projects/${featured.id}`}
-                  data-cursor="view"
-                  {...zoomProps}
-                  className="group flex flex-col rounded-panel overflow-hidden bg-ink text-on-ink"
-                >
-                  <Shot
-                    src={featured.image}
-                    alt={featured.title}
-                    sizes="(min-width: 1240px) 1200px, 100vw"
-                    tone="ink"
-                    priority
-                    className="aspect-[21/9]"
-                  />
+                <MotionLink href={`/projects/${featured.id}`} data-cursor="view" {...zoomProps} className="group flex flex-col rounded-panel overflow-hidden bg-ink text-on-ink">
+                  <Shot src={featured.image} alt={featured.title} sizes="(min-width: 1240px) 1200px, 100vw" tone="ink" priority className="aspect-[21/9]" />
                   <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-6 sm:px-8 sm:py-7">
                     <div className="flex flex-col gap-1.5 min-w-0">
-                      <span className="font-display font-bold text-[28px] sm:text-[36px] leading-tight tracking-[-0.02em]">
-                        {featured.title}
-                      </span>
-                      <span className="text-base text-on-ink-muted">
-                        {[featured.category, ...(featured.techstack ?? []).slice(0, 3)].filter(Boolean).join(" · ")}
-                      </span>
+                      <span className="font-display font-bold text-[28px] sm:text-[36px] leading-tight tracking-[-0.02em]">{featured.title}</span>
+                      <span className="text-base text-on-ink-muted">{[featured.category, ...(featured.techstack ?? []).slice(0, 3)].filter(Boolean).join(" · ")}</span>
                     </div>
-                    <span className="shrink-0 px-3.5 py-2 rounded-full bg-accent text-ink text-sm font-semibold">
-                      {t(typeTag(featured.type))}
-                    </span>
+                    <span className="shrink-0 px-3.5 py-2 rounded-full bg-accent text-ink text-sm font-semibold">{t(typeTag(featured.type))}</span>
                   </div>
                 </MotionLink>
               </Reveal>
@@ -159,28 +133,14 @@ export default function Home() {
               <Reveal stagger className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))]">
                 {rest.map((p) => (
                   <RevealItem key={p.id}>
-                    <MotionLink
-                      href={`/projects/${p.id}`}
-                      data-cursor="view"
-                      {...zoomProps}
-                      className="group flex flex-col gap-4"
-                    >
-                      <Shot
-                        src={p.image}
-                        alt={p.title}
-                        sizes="(min-width: 1240px) 400px, (min-width: 720px) 50vw, 100vw"
-                        className="aspect-[4/3] rounded-card"
-                      />
+                    <MotionLink href={`/projects/${p.id}`} data-cursor="view" {...zoomProps} className="group flex flex-col gap-4">
+                      <Shot src={p.image} alt={p.title} sizes="(min-width: 1240px) 400px, (min-width: 720px) 50vw, 100vw" className="aspect-[4/3] rounded-card" />
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex flex-col gap-1 min-w-0">
-                          <span className="font-display font-bold text-2xl tracking-[-0.02em] group-hover:underline underline-offset-4">
-                            {p.title}
-                          </span>
+                          <span className="font-display font-bold text-2xl tracking-[-0.02em] group-hover:underline underline-offset-4">{p.title}</span>
                           <span className="text-[15px] leading-normal text-muted line-clamp-2">{p.description}</span>
                         </div>
-                        <span className="shrink-0 px-3 py-1.5 rounded-full border-[1.5px] border-ink text-[13px] font-semibold whitespace-nowrap">
-                          {t(typeTag(p.type))}
-                        </span>
+                        <span className="shrink-0 px-3 py-1.5 rounded-full border-[1.5px] border-ink text-[13px] font-semibold whitespace-nowrap">{t(typeTag(p.type))}</span>
                       </div>
                     </MotionLink>
                   </RevealItem>
@@ -196,44 +156,28 @@ export default function Home() {
         <RevealItem className="flex flex-col gap-4 rounded-panel bg-surface p-8 sm:p-10">
           <span className="text-sm font-bold uppercase tracking-[0.08em] text-muted">{t("Side A")}</span>
           <h2 className="font-display font-bold text-[40px] leading-none tracking-[-0.03em]">{t("Developer")}</h2>
-          <p className="text-[17px] leading-relaxed text-muted">
-            {t("Web applications with React, Next.js and Laravel. Full-stack solutions, REST APIs and component architecture with Tailwind CSS.")}
-          </p>
+          <p className="text-[17px] leading-relaxed text-muted">{t("Web applications with React, Next.js and Laravel. Full-stack solutions, REST APIs and component architecture with Tailwind CSS.")}</p>
         </RevealItem>
         <RevealItem data-surface="ink" className="flex flex-col gap-4 rounded-panel bg-ink text-on-ink p-8 sm:p-10">
           <span className="text-sm font-bold uppercase tracking-[0.08em] text-on-ink-subtle">{t("Side B")}</span>
           <h2 className="font-display font-bold text-[40px] leading-none tracking-[-0.03em]">{t("Creative")}</h2>
-          <p className="text-[17px] leading-relaxed text-on-ink-muted">
-            {t("UI/UX and design systems in Figma, graphic branding, content strategy and video production for tech media.")}
-          </p>
-          <a
-            href="https://youtube.com/@syahrezasatria"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center self-start min-h-11 font-semibold text-accent hover:underline underline-offset-4"
-          >
+          <p className="text-[17px] leading-relaxed text-on-ink-muted">{t("UI/UX and design systems in Figma, graphic branding, content strategy and video production for tech media.")}</p>
+          <a href="https://youtube.com/@syahrezasatria" target="_blank" rel="noopener noreferrer" className="inline-flex items-center self-start min-h-11 font-semibold text-accent hover:underline underline-offset-4">
             {t("Watch on YouTube →")}
           </a>
         </RevealItem>
       </Reveal>
 
       {/* --- CONTACT --- */}
-      <Reveal
-        as="section"
-        aria-labelledby="contact-title"
-        className="flex flex-col gap-7 rounded-block bg-accent text-ink px-6 py-14 sm:px-10 sm:py-16"
-      >
-        <h2
-          id="contact-title"
-          className="font-display font-extrabold text-[clamp(44px,8vw,112px)] leading-[0.9] tracking-[-0.045em]"
-        >
+      <Reveal as="section" aria-labelledby="contact-title" className="flex flex-col gap-7 rounded-block bg-accent text-ink px-6 py-14 sm:px-10 sm:py-16">
+        <h2 id="contact-title" className="font-display font-extrabold text-[clamp(44px,8vw,112px)] leading-[0.9] tracking-[-0.045em]">
           {t("Let's make")}
           <br />
           {t("something.")}
         </h2>
         <div className="flex flex-wrap gap-3">
-          <a href="mailto:contact@syahreza-satria.xyz" className={`${pillCls} bg-ink text-on-ink break-all`}>
-            contact@syahreza-satria.xyz
+          <a href="mailto:satriaeza221@gmail.com" className={`${pillCls} bg-ink text-on-ink break-all`}>
+            contact syahreza satria alfath
           </a>
           <Link href="/guestbook" className={`${pillCls} border-2 border-ink hover:bg-ink hover:text-on-ink transition-colors`}>
             {t("Sign the guestbook")}

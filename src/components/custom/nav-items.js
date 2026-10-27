@@ -14,7 +14,7 @@ export const isPathActive = (pathname, path) =>
   path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
 
 export const RESUME_URL =
-  "https://drive.google.com/file/d/14riR0Zz1-02CrayQTaOxZ1Q-mYQHWVX4/view?usp=sharing";
+  "https://drive.google.com/file/d/1kPLgTtPrrhxL09rCp5Ypdlx0bujlSKC6/view?usp=sharing";
 
 export const socialLinks = [
   { name: "GitHub", url: "https://github.com/syahreza-satria" },
